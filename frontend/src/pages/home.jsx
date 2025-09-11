@@ -1,8 +1,13 @@
-export default function Home() {
+import logo from "../assets/OCClogo.png";
+
+function Home() {
   return (
-    <div className="text-center">
-      <h1 className="text-4xl font-bold text-blue-600">Welcome to the Home Page</h1>
-      <p className="mt-4 text-gray-700">This is the homepage content.</p>
+    <div className="flex flex-col items-center justify-center h-screen">
+      <img src={logo} alt="Logo" className="w-40 h-40 mb-6" />
+      <h1 className="text-3xl font-bold">Homepage</h1>
+      <p className="text-gray-600 mt-2">This is the homepage</p>
     </div>
   );
 }
+
+export default Home;
