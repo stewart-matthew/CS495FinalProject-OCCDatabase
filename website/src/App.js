@@ -5,6 +5,7 @@ import Navbar from "./components/navbar.jsx";
 import Home from "./pages/home.jsx";
 import About from "./pages/about.jsx";
 import Database from "./pages/database.jsx";
+import TestCard from "./pages/database.jsx";
 import Profile from "./pages/profile.jsx";
 import Login from "./pages/login.jsx";
 
