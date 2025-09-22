@@ -5,17 +5,14 @@ import Navbar from "./components/navbar.jsx";
 import Home from "./pages/home.jsx";
 import About from "./pages/about.jsx";
 import Database from "./pages/database.jsx";
-import TestCard from "./pages/database.jsx";
 import Profile from "./pages/profile.jsx";
 import Login from "./pages/login.jsx";
+import ChurchPage from "./pages/ChurchPage.jsx"; // <-- new import
 
 function App() {
   return (
     <Router>
-      {/* Navbar will show on all pages */}
       <Navbar />
-
-      {/* Page content */}
       <div className="p-6">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -23,6 +20,7 @@ function App() {
           <Route path="/database" element={<Database />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/church/:churchName" element={<ChurchPage />} /> {/* new route */}
         </Routes>
       </div>
     </Router>
