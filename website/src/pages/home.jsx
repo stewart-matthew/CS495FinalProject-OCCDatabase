@@ -25,7 +25,7 @@ export default function Home() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10 p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Welcome to OCC Database</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">Welcome to Operation Christmas Child Database</h1>
       <p className="text-gray-600 text-center mb-10">
         Explore churches and their members.
       </p>
