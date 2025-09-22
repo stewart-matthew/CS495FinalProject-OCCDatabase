@@ -7,7 +7,7 @@ import About from "./pages/about.jsx";
 import Database from "./pages/database.jsx";
 import Profile from "./pages/profile.jsx";
 import Login from "./pages/login.jsx";
-import ChurchPage from "./pages/ChurchPage.jsx"; 
+import ChurchPage from "./pages/church.jsx";
 
 function App() {
   return (
