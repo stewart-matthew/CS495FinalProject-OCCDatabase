@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
-export default function Church() {
+export default function ChurchPage() {
   const { churchName } = useParams();
   const [church, setChurch] = useState(null);
+  const [individuals, setIndividuals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [individualsLoading, setIndividualsLoading] = useState(true);
 
   useEffect(() => {
     async function getChurch() {
@@ -25,7 +27,24 @@ export default function Church() {
     getChurch();
   }, [churchName]);
 
-  if (loading) return <p>Loading...</p>;
+  useEffect(() => {
+    async function getIndividuals() {
+      const { data, error } = await supabase
+        .from("individuals")
+        .select("full_name, phone_number, position, church_affiliation")
+        .eq("church_affiliation", churchName);
+      if (error) {
+        console.error(error);
+      } else {
+        setIndividuals(data);
+      }
+      setIndividualsLoading(false);
+    }
+
+    getIndividuals();
+  }, [churchName]);
+
+  if (loading) return <p>Loading church info...</p>;
   if (!church) return <p>Church not found.</p>;
 
   return (
@@ -40,6 +59,27 @@ export default function Church() {
       <p className="text-gray-700 mb-2">
         <strong>Phone:</strong> {church.phone_number}
       </p>
+
+      <h2 className="text-xl font-semibold mt-6 mb-2">Individuals</h2>
+      {individualsLoading ? (
+        <p>Loading individuals...</p>
+      ) : individuals.length === 0 ? (
+        <p>No individuals found.</p>
+      ) : (
+        <ul className="list-disc pl-5">
+          {individuals.map((person) => (
+            <li key={person.full_name + person.phone_number}>
+              <span className="font-medium">{person.full_name}</span>
+              {person.position && (
+                <span className="text-gray-600"> — {person.position}</span>
+              )}
+              {person.phone_number && (
+                <span className="text-gray-500"> ({person.phone_number})</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <button
         className="mt-4 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
