@@ -7,7 +7,7 @@ import About from "./pages/about.jsx";
 import Database from "./pages/database.jsx";
 import Profile from "./pages/profile.jsx";
 import Login from "./pages/login.jsx";
-import ChurchPage from "./pages/church.jsx";
+import Church from "./pages/church.jsx";
 
 function App() {
   return (
@@ -20,7 +20,7 @@ function App() {
           <Route path="/database" element={<Database />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/church/:churchName" element={<ChurchPage />} />
+          <Route path="/church/:churchName" element={<Church />} />
         </Routes>
       </div>
     </Router>

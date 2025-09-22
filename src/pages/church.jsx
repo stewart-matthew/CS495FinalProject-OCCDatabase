@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
-export default function ChurchPage() {
+export default function Church() {
   const { churchName } = useParams();
   const [church, setChurch] = useState(null);
   const [loading, setLoading] = useState(true);
