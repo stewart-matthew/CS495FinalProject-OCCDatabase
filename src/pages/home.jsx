@@ -12,7 +12,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from("church")
         .select("church_name, physical_city, physical_state");
-      console.log("Supabase data:", data, "Error:", error);
+
       if (error) {
         console.error(error);
       } else {
