@@ -26,11 +26,10 @@ export default function Login() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        // Check role in user_metadata
         const role = user.user_metadata.role || "user";
 
         if (role === "admin" || role === "master") {
-          navigate("/database"); // Example: admins go to DB page
+          navigate("/database"); // admins go to DB page
         } else {
           navigate("/profile"); // Normal users go to profile
         }

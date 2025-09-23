@@ -4,6 +4,7 @@ import { supabase } from "../supabaseClient";
 
 export default function ChurchPage() {
   const { churchName } = useParams();
+  const decodedName = decodeURIComponent(churchName);
   const [church, setChurch] = useState(null);
   const [individuals, setIndividuals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,8 +15,9 @@ export default function ChurchPage() {
       const { data, error } = await supabase
         .from("church")
         .select("church_name, physical_city, physical_state, phone_number")
-        .eq("church_name", churchName)
+        .eq("church_name", decodedName)
         .single();
+
       if (error) {
         console.error(error);
       } else {
@@ -25,14 +27,15 @@ export default function ChurchPage() {
     }
 
     getChurch();
-  }, [churchName]);
+  }, [decodedName]);
 
   useEffect(() => {
     async function getIndividuals() {
       const { data, error } = await supabase
         .from("individuals")
         .select("full_name, phone_number, position, church_affiliation")
-        .eq("church_affiliation", churchName);
+        .eq("church_affiliation", decodedName);
+
       if (error) {
         console.error(error);
       } else {
@@ -42,7 +45,7 @@ export default function ChurchPage() {
     }
 
     getIndividuals();
-  }, [churchName]);
+  }, [decodedName]);
 
   if (loading) return <p>Loading church info...</p>;
   if (!church) return <p>Church not found.</p>;
