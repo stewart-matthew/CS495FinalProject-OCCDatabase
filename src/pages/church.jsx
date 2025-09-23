@@ -4,7 +4,6 @@ import { supabase } from "../supabaseClient";
 
 export default function ChurchPage() {
   const { churchName } = useParams();
-  const decodedChurchName = decodeURIComponent(churchName); // handle URL encoding
   const [church, setChurch] = useState(null);
   const [individuals, setIndividuals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +14,7 @@ export default function ChurchPage() {
       const { data, error } = await supabase
         .from("church")
         .select("church_name, physical_city, physical_state, phone_number, physical_zip, shoebox_2025")
-        .eq("church_name", decodedChurchName)
+        .eq("church_name", churchName)
         .single();
       if (error) {
         console.error(error);
@@ -26,14 +25,14 @@ export default function ChurchPage() {
     }
 
     getChurch();
-  }, [decodedChurchName]);
+  }, [churchName]);
 
   useEffect(() => {
     async function getIndividuals() {
       const { data, error } = await supabase
         .from("individuals")
         .select("full_name, phone_number, position, church_affiliation")
-        .eq("church_affiliation", decodedChurchName);
+        .eq("church_affiliation", churchName);
       if (error) {
         console.error(error);
       } else {
@@ -43,7 +42,7 @@ export default function ChurchPage() {
     }
 
     getIndividuals();
-  }, [decodedChurchName]);
+  }, [churchName]);
 
   if (loading) return <p>Loading church info...</p>;
   if (!church) return <p>Church not found.</p>;
@@ -62,16 +61,6 @@ export default function ChurchPage() {
       <p className="text-gray-700 mb-2">
         <strong>Phone:</strong> {church.phone_number}
       </p>
-      {church.physical_zip && (
-        <p className="text-gray-700 mb-2">
-          <strong>Zip Code:</strong> {church.physical_zip}
-        </p>
-      )}
-      {church.shoebox_2025 && (
-        <p className="text-gray-700 mb-2">
-          <strong>Shoebox 2025:</strong> {church.shoebox_2025}
-        </p>
-      )}
 
       <h2 className="text-xl font-semibold mt-6 mb-2">Individuals</h2>
       {individualsLoading ? (
@@ -84,7 +73,9 @@ export default function ChurchPage() {
             <li key={person.full_name + person.phone_number}>
               <span className="font-medium">{person.full_name}</span>
               {person.position && (
-                <span className="text-gray-600"> — {person.position}</span>
+                <span className="text-gray-600">
+                  {" — " + person.position.replace(/_/g, " ")}
+                </span>
               )}
               {person.phone_number && (
                 <span className="text-gray-500"> ({person.phone_number})</span>
