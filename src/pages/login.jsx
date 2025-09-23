@@ -29,7 +29,7 @@ export default function Login() {
         const role = user.user_metadata.role || "user";
 
         if (role === "admin" || role === "master") {
-          navigate("/database"); // admins go to DB page
+          navigate("/home"); // admins go to home page
         } else {
           navigate("/profile"); // Normal users go to profile
         }

@@ -17,17 +17,19 @@ export default function Home() {
   async function getChurches(filterValues = filters) {
     setLoading(true);
 
-    let query = supabase.from("church").select("*"); // select all columns
+    let query = supabase.from("church").select("*");
 
     // Apply filters
     if (filterValues.churchName) {
-      query = query.ilike("church_name", `%${filterValues.churchName}%`); // partial match
+      // replace spaces with underscores to match DB storage
+      const searchValue = filterValues.churchName.replace(/ /g, "_");
+      query = query.ilike("church_name", `%${searchValue}%`);
     }
     if (filterValues.zipcode) {
       query = query.eq("physical_zip", filterValues.zipcode);
     }
     if (filterValues.shoebox_2025) {
-      query = query.gte("shoebox_2025", filterValues.shoebox_2025); // AT LEAST
+      query = query.gte("shoebox_2025", filterValues.shoebox_2025);
     }
 
     const { data, error } = await query;
@@ -38,7 +40,6 @@ export default function Home() {
     } else {
       let sortedData = [...data];
 
-      // Apply sort
       if (filterValues.sortBy === "shoebox_desc") {
         sortedData.sort((a, b) => (b.shoebox_2025 || 0) - (a.shoebox_2025 || 0));
       } else if (filterValues.sortBy === "name_asc") {
@@ -53,7 +54,6 @@ export default function Home() {
     setLoading(false);
   }
 
-  // Load all churches initially
   useEffect(() => {
     getChurches();
   }, []);
@@ -100,7 +100,7 @@ export default function Home() {
         <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            onClick={() => getChurches()} // uses current filters
+            onClick={() => getChurches()}
           >
             Apply Filters
           </button>
@@ -115,7 +115,7 @@ export default function Home() {
                 sortBy: "",
               };
               setFilters(clearedFilters);
-              getChurches(clearedFilters); // apply cleared filters immediately
+              getChurches(clearedFilters);
             }}
           >
             Clear Filters
@@ -130,7 +130,7 @@ export default function Home() {
                 const sortBy = e.target.value;
                 const newFilters = { ...filters, sortBy };
                 setFilters(newFilters);
-                getChurches(newFilters); // apply sort immediately
+                getChurches(newFilters);
               }}
               className="border p-2 rounded"
             >
@@ -151,7 +151,9 @@ export default function Home() {
             className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between"
           >
             <div>
-              <h2 className="text-xl font-bold mb-2">{church.church_name}</h2>
+              <h2 className="text-xl font-bold mb-2">
+                {church.church_name.replace(/_/g, " ")}
+              </h2>
               <p className="text-gray-700">
                 {church.physical_city}, {church.physical_state}
               </p>
@@ -172,7 +174,7 @@ export default function Home() {
                 navigate(`/church/${encodeURIComponent(church.church_name)}`)
               }
             >
-              Go to page
+              Church Information
             </button>
           </div>
         ))}
