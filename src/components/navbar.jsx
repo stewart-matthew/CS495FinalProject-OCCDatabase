@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import logo from "../assets/OCClogo.png";
@@ -6,20 +6,22 @@ import logo from "../assets/OCClogo.png";
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation(); // get current path
 
   useEffect(() => {
-    // Get current user session on load
-    const checkUser = async () => {
+    // Check current user on load
+    const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
     };
-    checkUser();
+    getUser();
 
-    // Subscribe to auth changes
+    // Subscribe to auth changes (login, logout, refresh)
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
+    // Cleanup subscription
     return () => {
       subscription.subscription.unsubscribe();
     };
@@ -31,6 +33,9 @@ export default function Navbar() {
     navigate("/login");
   };
 
+  // Hide all navbar links on the login page
+  const hideLinks = location.pathname === "/login";
+
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">
       <div className="flex items-center">
@@ -38,17 +43,19 @@ export default function Navbar() {
         <span className="text-2xl font-bold">Operation Christmas Child</span>
       </div>
 
-      <div className="flex space-x-6">
-        {!user ? (
-          <Link to="/login" className="hover:text-gray-300">Login</Link>
-        ) : (
-          <>
-            <Link to="/" className="hover:text-gray-300">Home</Link>
-            <Link to="/about" className="hover:text-gray-300">About</Link>
-            <Link to="/profile" className="hover:text-gray-300">Profile</Link>
-          </>
-        )}
-      </div>
+      {!hideLinks && (
+        <div className="flex space-x-6">
+          {!user ? (
+            <Link to="/login" className="hover:text-gray-300">Login</Link>
+          ) : (
+            <>
+              <Link to="/" className="hover:text-gray-300">Home</Link>
+              <Link to="/about" className="hover:text-gray-300">About</Link>
+              <Link to="/profile" className="hover:text-gray-300">Profile</Link>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
