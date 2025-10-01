@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
@@ -14,28 +15,32 @@ export default function Login() {
     setLoading(true);
     setErrorMessage("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Override persistence based on checkbox
+    supabase.auth.setSession({
+      access_token: null,
+      refresh_token: null,
+    }); // Clear old session first
 
-    if (error) {
-      setErrorMessage(error.message);
-    } else {
-      // Get user info
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const role = user.user_metadata.role || "user";
-
-        if (role === "admin" || role === "master") {
-          navigate("/home"); // admins go to home page
-        } else {
-          navigate("/profile"); // Normal users go to profile
+    // 👇 tell supabase whether to persist session
+    supabase.auth.signInWithPassword(
+      { email, password },
+      { persistSession: rememberMe }
+    ).then(async ({ data, error }) => {
+      if (error) {
+        setErrorMessage(error.message);
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const role = user.user_metadata.role || "user";
+          if (role === "admin" || role === "master") {
+            navigate("/home");
+          } else {
+            navigate("/profile");
+          }
         }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    });
   };
 
   return (
@@ -59,9 +64,22 @@ export default function Login() {
             className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
             required
           />
+
+          {/* Remember me checkbox */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="mr-2"
+            />
+            <label>Remember me</label>
+          </div>
+
           {errorMessage && (
             <p className="text-red-500 text-sm">{errorMessage}</p>
           )}
+
           <button
             type="submit"
             disabled={loading}

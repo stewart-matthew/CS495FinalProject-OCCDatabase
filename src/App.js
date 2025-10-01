@@ -1,24 +1,42 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./components/navbar.jsx";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Navbar from "./components/navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-// Pages
-import Home from "./pages/home.jsx";
-import About from "./pages/about.jsx";
-import Profile from "./pages/profile.jsx";
-import Login from "./pages/login.jsx";
-import Church from "./pages/church.jsx";
+import Home from "./pages/home";
+import About from "./pages/about";
+import ChurchPage from "./pages/church";
+import Profile from "./pages/profile";
+import Login from "./pages/login";
 
 function App() {
   return (
     <Router>
-      <Navbar />
-      <div className="p-6">
+      <div className="min-h-screen bg-gray-100">
+        {/* Navbar is always shown, reacts to login/logout */}
+        <Navbar />
+
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/profile" element={<Profile />} />
+          {/* Public route */}
           <Route path="/login" element={<Login />} />
-          <Route path="/church/:churchName" element={<Church />} />
+
+          {/* All other routes are protected */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/church/:churchName" element={<ChurchPage />} />
+                  <Route path="/profile" element={<Profile />} />
+
+                  {/* Redirect unknown paths to home */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>

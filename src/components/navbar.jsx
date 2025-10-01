@@ -1,27 +1,35 @@
-import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import logo from "../assets/OCClogo.png";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-  // Track user session
   useEffect(() => {
-    // Get current user
-    const sessionUser = supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser(data.user);
+    // Get current user session on load
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    checkUser();
+
+    // Subscribe to auth changes
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
     });
 
-    // Listen for auth changes (login/logout)
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
-      }
-    );
-
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      subscription.subscription.unsubscribe();
+    };
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    navigate("/login");
+  };
 
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">
@@ -31,23 +39,14 @@ export default function Navbar() {
       </div>
 
       <div className="flex space-x-6">
-        <Link to="/" className="hover:text-gray-300">
-          Home
-        </Link>
-        <Link to="/about" className="hover:text-gray-300">
-          About
-        </Link>
-
-        {user ? (
-          <>
-            <Link to="/profile" className="hover:text-gray-300">
-              Profile
-            </Link>
-          </>
+        {!user ? (
+          <Link to="/login" className="hover:text-gray-300">Login</Link>
         ) : (
-          <Link to="/login" className="hover:text-gray-300">
-            Login
-          </Link>
+          <>
+            <Link to="/" className="hover:text-gray-300">Home</Link>
+            <Link to="/about" className="hover:text-gray-300">About</Link>
+            <Link to="/profile" className="hover:text-gray-300">Profile</Link>
+          </>
         )}
       </div>
     </nav>
