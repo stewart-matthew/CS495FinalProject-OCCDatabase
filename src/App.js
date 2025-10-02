@@ -7,6 +7,8 @@ import About from "./pages/about";
 import ChurchPage from "./pages/church";
 import Profile from "./pages/profile";
 import Login from "./pages/login";
+import EditProfile from "./pages/editProfile";
+import TeamMembers from "./pages/teamMembers";
 
 function App() {
   return (
@@ -33,6 +35,20 @@ function App() {
 
                   {/* Redirect unknown paths to home */}
                   <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="/editProfile" element={
+                      <ProtectedRoute>
+                        <EditProfile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/team-members"
+                    element={
+                      <ProtectedRoute>
+                        <TeamMembers />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
               </ProtectedRoute>
             }

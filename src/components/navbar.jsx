@@ -5,23 +5,45 @@ import logo from "../assets/OCClogo.png";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
+  const [member, setMember] = useState(null); // store team_members info
   const navigate = useNavigate();
-  const location = useLocation(); // get current path
+  const location = useLocation();
 
   useEffect(() => {
-    // Check current user on load
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+
+      if (user) {
+        // fetch matching team_members row
+        const { data } = await supabase
+          .from("team_members")
+          .select("*")
+          .eq("email", user.email)
+          .single();
+        setMember(data);
+      } else {
+        setMember(null);
+      }
     };
     getUser();
 
-    // Subscribe to auth changes (login, logout, refresh)
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+      const currentUser = session?.user || null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        supabase
+          .from("team_members")
+          .select("*")
+          .eq("email", currentUser.email)
+          .single()
+          .then(({ data }) => setMember(data));
+      } else {
+        setMember(null);
+      }
     });
 
-    // Cleanup subscription
     return () => {
       subscription.subscription.unsubscribe();
     };
@@ -30,10 +52,10 @@ export default function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setMember(null);
     navigate("/login");
   };
 
-  // Hide all navbar links on the login page
   const hideLinks = location.pathname === "/login";
 
   return (
@@ -52,6 +74,7 @@ export default function Navbar() {
               <Link to="/" className="hover:text-gray-300">Home</Link>
               <Link to="/about" className="hover:text-gray-300">About</Link>
               <Link to="/profile" className="hover:text-gray-300">Profile</Link>
+              <Link to="/team-members" className="hover:text-gray-300">Team Members</Link>
             </>
           )}
         </div>
