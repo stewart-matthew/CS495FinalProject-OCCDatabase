@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [memberData, setMemberData] = useState(null);
-  const [position, setPosition] = useState(""); // default empty string
+  const [positions, setPositions] = useState(""); // default empty string
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,10 +31,11 @@ export default function Profile() {
       const { data: pos, error: posError } = await supabase
         .from("member_positions")
         .select("position")
-        .eq("member_id", member.id)
-        .single();
+        .eq("member_id", member.id);
 
-      if (!posError && pos) setPosition(pos.position);
+      if (!posError && pos) {
+        setPositions(pos.map(p => p.position));
+      } 
     };
     getUserAndData();
   }, [navigate]);
@@ -51,7 +52,14 @@ export default function Profile() {
         <>
           <p><strong>Email:</strong> {user.email}</p>
           <p><strong>Name:</strong> {memberData.first_name} {memberData.last_name}</p>
-          <p><strong>Position:</strong> {position || "N/A"}</p>
+          <div className="mt-2">
+            <strong>Position{positions.length !== 1 ? "s" : ""}:</strong>{" "}
+            {positions.length === 0 ? "N/A" : (
+              <ul className="list-disc ml-6">
+                {positions.map((p, i) => (<li key={i}>{p}</li>))}
+              </ul>
+            )}
+          </div>
 
           <Link
             to="/editProfile"
