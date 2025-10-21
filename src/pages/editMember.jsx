@@ -1,163 +1,48 @@
-// src/pages/editMember.jsx
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function EditMember() {
-    const { memberId } = useParams();
-    const [formData, setFormData] = useState({});
-    const [positions, setPositions] = useState([]);
-    const [selectedPosition, setSelectedPosition] = useState("");
-    const navigate = useNavigate();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            // Fetch member
-            const { data: member } = await supabase
-                .from("team_members")
-                .select("*")
-                .eq("id", memberId)
-                .single();
-
-            if (member) setFormData(member);
-
-            // Fetch member position
-            const { data: memberPos } = await supabase
-                .from("member_positions")
-                .select("position")
-                .eq("member_id", memberId)
-                .single();
-
-            if (memberPos) setSelectedPosition(memberPos.position);
-
-            // Fetch all positions
-            const { data: allPositions } = await supabase
-                .from("positions")
-                .select("code");
-
-            setPositions(allPositions ? allPositions.map(p => p.code) : []);
-        };
-
-        fetchData();
-    }, [memberId]);
-
-    const handleChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  useEffect(() => {
+    const fetchMember = async () => {
+      const { data, error } = await supabase.from("team_members").select("*").eq("id", id).single();
+      if (error) alert(error.message);
+      else setFormData(data);
+      setLoading(false);
     };
+    fetchMember();
+  }, [id]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-        // Update member
-        await supabase.from("team_members")
-            .update({
-                first_name: formData.first_name,
-                last_name: formData.last_name,
-                email: formData.email,
-                phone_number: formData.phone_number,
-                shirt_size: formData.shirt_size,
-                church_affiliation_name: formData.church_affiliation_name,
-            })
-            .eq("id", memberId);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.from("team_members").update(formData).eq("id", id);
+    setLoading(false);
+    if (error) alert(error.message);
+    else navigate("/team-members");
+  };
 
-        // Update or insert position
-        const { data: existing } = await supabase
-            .from("member_positions")
-            .select("id")
-            .eq("member_id", memberId)
-            .single();
+  if (loading) return <p>Loading member data...</p>;
 
-        if (!existing && selectedPosition) {
-            await supabase.from("member_positions").insert({
-                member_id: memberId,
-                position: selectedPosition
-            });
-        } else if (existing) {
-            await supabase.from("member_positions")
-                .update({ position: selectedPosition })
-                .eq("member_id", memberId);
-        }
-
-        navigate("/teamMembers");
-    };
-
-    if (!formData) return <p>Loading...</p>;
-
-    return (
-        <div className="max-w-xl mx-auto mt-10 bg-white p-6 shadow rounded">
-            <h1 className="text-2xl font-bold mb-4">Edit Team Member</h1>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                    type="text"
-                    name="first_name"
-                    value={formData.first_name || ""}
-                    onChange={handleChange}
-                    placeholder="First Name"
-                    className="w-full border px-3 py-2 rounded"
-                />
-                <input
-                    type="text"
-                    name="last_name"
-                    value={formData.last_name || ""}
-                    onChange={handleChange}
-                    placeholder="Last Name"
-                    className="w-full border px-3 py-2 rounded"
-                />
-                <input
-                    type="email"
-                    name="email"
-                    value={formData.email || ""}
-                    onChange={handleChange}
-                    placeholder="Email"
-                    className="w-full border px-3 py-2 rounded"
-                />
-                <input
-                    type="text"
-                    name="phone_number"
-                    value={formData.phone_number || ""}
-                    onChange={handleChange}
-                    placeholder="Phone Number"
-                    className="w-full border px-3 py-2 rounded"
-                />
-                <input
-                    type="text"
-                    name="church_affiliation_name"
-                    value={formData.church_affiliation_name || ""}
-                    onChange={handleChange}
-                    placeholder="Church Affiliation"
-                    className="w-full border px-3 py-2 rounded"
-                />
-                <select
-                    name="shirt_size"
-                    value={formData.shirt_size || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                >
-                    <option value="">Select Shirt Size</option>
-                    <option value="S">S</option>
-                    <option value="M">M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-                    <option value="2XL">2XL</option>
-                    <option value="3XL">3XL</option>
-                </select>
-                <select
-                    value={selectedPosition || ""}
-                    onChange={(e) => setSelectedPosition(e.target.value)}
-                    className="w-full border px-3 py-2 rounded"
-                >
-                    <option value="">Select Position</option>
-                    {positions.map((pos) => (
-                        <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                </select>
-                <button
-                    type="submit"
-                    className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                    Save Changes
-                </button>
-            </form>
-        </div>
-    );
+  return (
+    <div className="max-w-xl mx-auto mt-10 bg-white p-6 shadow rounded">
+      <h1 className="text-2xl font-bold mb-4">Edit Team Member</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input name="first_name" placeholder="First Name" value={formData.first_name || ""} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+        <input name="last_name" placeholder="Last Name" value={formData.last_name || ""} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+        <input name="email" type="email" placeholder="Email" value={formData.email || ""} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+        <input name="phone_number" placeholder="Phone Number" value={formData.phone_number || ""} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+        <button type="submit" disabled={loading} className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          {loading ? "Saving..." : "Save Changes"}
+        </button>
+      </form>
+    </div>
+  );
 }
