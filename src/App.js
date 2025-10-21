@@ -9,19 +9,22 @@ import Profile from "./pages/profile";
 import Login from "./pages/login";
 import EditProfile from "./pages/editProfile";
 import TeamMembers from "./pages/teamMembers";
+import AddMember from "./pages/addMember";
+import EditMember from "./pages/editMember";
+import AddChurch from "./pages/addChurch";
+import EditChurch from "./pages/editChurch";
 
 function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
-        {/* Navbar is always shown, reacts to login/logout */}
         <Navbar />
 
         <Routes>
           {/* Public route */}
           <Route path="/login" element={<Login />} />
 
-          {/* All other routes are protected */}
+          {/* Protected routes */}
           <Route
             path="/*"
             element={
@@ -32,23 +35,17 @@ function App() {
                   <Route path="/about" element={<About />} />
                   <Route path="/church/:churchName" element={<ChurchPage />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/editProfile" element={<EditProfile />} />
+                  <Route path="/team-members" element={<TeamMembers />} />
 
-                  {/* Redirect unknown paths to home */}
+                  {/* Add/Edit routes */}
+                  <Route path="/add-member" element={<AddMember />} />
+                  <Route path="/edit-member/:id" element={<EditMember />} />
+                  <Route path="/add-church" element={<AddChurch />} />
+                  <Route path="/edit-church/:churchName" element={<EditChurch />} />
+
+                  {/* Redirect unknown paths */}
                   <Route path="*" element={<Navigate to="/" replace />} />
-                  <Route path="/editProfile" element={
-                      <ProtectedRoute>
-                        <EditProfile />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/team-members"
-                    element={
-                      <ProtectedRoute>
-                        <TeamMembers />
-                      </ProtectedRoute>
-                    }
-                  />
                 </Routes>
               </ProtectedRoute>
             }

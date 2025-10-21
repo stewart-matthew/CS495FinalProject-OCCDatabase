@@ -21,7 +21,7 @@ export default function Login() {
       refresh_token: null,
     }); // Clear old session first
 
-    // 👇 tell supabase whether to persist session
+    // tell supabase whether to persist session
     supabase.auth.signInWithPassword(
       { email, password },
       { persistSession: rememberMe }

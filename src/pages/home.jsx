@@ -19,34 +19,22 @@ export default function Home() {
   // Fetch churches with optional filters
   async function getChurches(filterValues = filters) {
     setLoading(true);
-
     let query = supabase.from("church").select("*");
 
-    // Apply existing filters
     if (filterValues.churchName) {
-      // replace spaces with underscores to match DB storage
       const searchValue = filterValues.churchName.replace(/ /g, "_");
       query = query.ilike("church_name", `%${searchValue}%`);
     }
-    if (filterValues.zipcode) {
-      query = query.eq("physical_zip", filterValues.zipcode);
-    }
-    if (filterValues.shoebox_2025) {
-      query = query.gte("shoebox_2025", filterValues.shoebox_2025);
-    }
-    
-    if (filterValues.selectedCounties && filterValues.selectedCounties.length > 0) {
-      query = query.in("physical_county", filterValues.selectedCounties);
-    }
+    if (filterValues.zipcode) query = query.eq("physical_zip", filterValues.zipcode);
+    if (filterValues.shoebox_2025) query = query.gte("shoebox_2025", filterValues.shoebox_2025);
+    if (filterValues.selectedCounties.length > 0) query = query.in("physical_county", filterValues.selectedCounties);
 
     const { data, error } = await query;
-
     if (error) {
       console.error("Error fetching churches:", error);
       setChurches([]);
     } else {
       let sortedData = [...data];
-
       if (filterValues.sortBy === "shoebox_desc") {
         sortedData.sort((a, b) => (b.shoebox_2025 || 0) - (a.shoebox_2025 || 0));
       } else if (filterValues.sortBy === "name_asc") {
@@ -54,28 +42,20 @@ export default function Home() {
       } else if (filterValues.sortBy === "name_desc") {
         sortedData.sort((a, b) => b.church_name.localeCompare(a.church_name));
       }
-
       setChurches(sortedData);
     }
-
     setLoading(false);
   }
 
   const toggleCountyFilter = (county) => {
-    let newSelectedCounties;
     const isSelected = filters.selectedCounties.includes(county);
-    
-    if (isSelected) {
-      newSelectedCounties = filters.selectedCounties.filter((c) => c !== county);
-    } else {
-      newSelectedCounties = [...filters.selectedCounties, county];
-    }
-
+    const newSelectedCounties = isSelected
+      ? filters.selectedCounties.filter((c) => c !== county)
+      : [...filters.selectedCounties, county];
     const newFilters = { ...filters, selectedCounties: newSelectedCounties };
     setFilters(newFilters);
     getChurches(newFilters);
   };
-
 
   useEffect(() => {
     getChurches();
@@ -87,29 +67,27 @@ export default function Home() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10">
-      
+      {/* County Filters */}
       <div className="mb-6 bg-blue-50 p-4 rounded-lg shadow-sm">
         <h2 className="text-lg font-semibold mb-3">Filter by County</h2>
         <div className="flex flex-wrap gap-3">
-          {COUNTY_OPTIONS.map((county) => {
-            const isSelected = filters.selectedCounties.includes(county);
-            return (
-              <button
-                key={county}
-                onClick={() => toggleCountyFilter(county)}
-                className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                  isSelected
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-gray-200 text-gray-700 hover:bg-blue-200"
-                }`}
-              >
-                {county}
-              </button>
-            );
-          })}
+          {COUNTY_OPTIONS.map((county) => (
+            <button
+              key={county}
+              onClick={() => toggleCountyFilter(county)}
+              className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                filters.selectedCounties.includes(county)
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-200 text-gray-700 hover:bg-blue-200"
+              }`}
+            >
+              {county}
+            </button>
+          ))}
         </div>
       </div>
 
+      {/* Other Filters */}
       <div className="mb-6 bg-gray-100 p-4 rounded-lg shadow-sm">
         <h2 className="text-lg font-semibold mb-3">Other Filters</h2>
         <div className="flex flex-col md:flex-row gap-4">
@@ -117,32 +95,25 @@ export default function Home() {
             type="text"
             placeholder="Search by church name"
             value={filters.churchName}
-            onChange={(e) =>
-              setFilters({ ...filters, churchName: e.target.value })
-            }
+            onChange={(e) => setFilters({ ...filters, churchName: e.target.value })}
             className="border p-2 rounded w-full md:w-1/3"
           />
           <input
             type="text"
             placeholder="Filter by zipcode"
             value={filters.zipcode}
-            onChange={(e) =>
-              setFilters({ ...filters, zipcode: e.target.value })
-            }
+            onChange={(e) => setFilters({ ...filters, zipcode: e.target.value })}
             className="border p-2 rounded w-full md:w-1/3"
           />
           <input
             type="number"
             placeholder="Minimum shoebox 2025"
             value={filters.shoebox_2025}
-            onChange={(e) =>
-              setFilters({ ...filters, shoebox_2025: e.target.value })
-            }
+            onChange={(e) => setFilters({ ...filters, shoebox_2025: e.target.value })}
             className="border p-2 rounded w-full md:w-1/3"
           />
         </div>
 
-        {/* Buttons + Sort */}
         <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -154,13 +125,7 @@ export default function Home() {
           <button
             className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
             onClick={() => {
-              const clearedFilters = {
-                churchName: "",
-                zipcode: "",
-                shoebox_2025: "",
-                sortBy: "",
-                selectedCounties: [],
-              };
+              const clearedFilters = { churchName: "", zipcode: "", shoebox_2025: "", sortBy: "", selectedCounties: [] };
               setFilters(clearedFilters);
               getChurches(clearedFilters);
             }}
@@ -190,36 +155,29 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Church Cards (Existing) */}
+      {/* Add Church Button */}
+      <div className="flex justify-end mb-4">
+        <button
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          onClick={() => navigate("/add-church")}
+        >
+          Add Church
+        </button>
+      </div>
+
+      {/* Church Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {churches.map((church) => (
-          <div
-            key={church.church_name}
-            className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between"
-          >
+          <div key={church.church_name} className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between">
             <div>
-              <h2 className="text-xl font-bold mb-2">
-                {church.church_name.replace(/_/g, " ")}
-              </h2>
-              <p className="text-gray-700">
-                {church.physical_city}, {church.physical_state} - **{church.physical_county} County**
-              </p>
-              {church.shoebox_2025 !== undefined && (
-                <p className="text-gray-700">
-                  <strong>Shoebox 2025:</strong> {church.shoebox_2025}
-                </p>
-              )}
-              {church.physical_zip && (
-                <p className="text-gray-700">
-                  <strong>Zip Code:</strong> {church.physical_zip}
-                </p>
-              )}
+              <h2 className="text-xl font-bold mb-2">{church.church_name.replace(/_/g, " ")}</h2>
+              <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>
+              {church.shoebox_2025 !== undefined && <p className="text-gray-700"><strong>Shoebox 2025:</strong> {church.shoebox_2025}</p>}
+              {church.physical_zip && <p className="text-gray-700"><strong>Zip Code:</strong> {church.physical_zip}</p>}
             </div>
             <button
               className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              onClick={() =>
-                navigate(`/church/${encodeURIComponent(church.church_name)}`)
-              }
+              onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
             >
               Church Information
             </button>
