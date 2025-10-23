@@ -248,7 +248,7 @@ export default function TeamMembers() {
             {expanded[member.id] === "church" && churches[member.id] && (
               <div className="mt-3 bg-gray-100 p-3 rounded">
                 <h3 className="font-semibold mb-2">Affiliated Church:</h3>
-                <p><strong>Name:</strong> {churches[member.id].church_name || "N/A"}</p>
+                <p><strong>Name:</strong> {churches[member.id].church_name.replace(/_/g, " ") || "N/A"}</p>
                 <p><strong>City:</strong> {churches[member.id].physical_city || "N/A"}</p>
                 <p><strong>State:</strong> {churches[member.id].physical_state || "N/A"}</p>
                 <p><strong>Zip:</strong> {churches[member.id].physical_zip || "N/A"}</p>
