@@ -7,6 +7,7 @@ export default function TeamMembers() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({}); // { memberId: "info" | "church" | null }
   const [churches, setChurches] = useState({});
+  const [copyStatus, setCopyStatus] = useState(null); // 'success' or 'error'
   const navigate = useNavigate();
 
   // Fetch team members
@@ -31,6 +32,44 @@ export default function TeamMembers() {
 
     fetchMembers();
   }, []);
+
+  // Clear copy status after a short period
+  useEffect(() => {
+    if (copyStatus) {
+      const timer = setTimeout(() => {
+        setCopyStatus(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [copyStatus]);
+
+  const copyAllEmailsToClipboard = async () => {
+    const emails = members
+      .filter((member) => member.email)
+      .map((member) => member.email)
+      .join(", ");
+
+    if (!emails) {
+      setCopyStatus('error');
+      console.warn("No emails found to copy.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(emails);
+      setCopyStatus('success');
+    } catch (err) {
+      console.error("Failed to copy using clipboard API. Falling back to execCommand.", err);
+      const textarea = document.createElement('textarea');
+      textarea.value = emails;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      setCopyStatus('success');
+    }
+  };
 
   // Toggle info expansion for a member
   const toggleInfo = (id) => {
@@ -70,10 +109,23 @@ export default function TeamMembers() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-      {/* Add Member button at top */}
-      <div className="col-span-full flex justify-end mb-4">
+      {/* Add new button and copy status notification */}
+      <div className="col-span-full flex justify-end items-center space-x-4 mb-4">
+        {copyStatus === 'success' && (
+          <span className="text-sm font-semibold text-green-600">Emails copied!</span>
+        )}
+        {copyStatus === 'error' && (
+          <span className="text-sm font-semibold text-red-600">No emails found to copy.</span>
+        )}
+        
         <button
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition duration-150 ease-in-out"
+          onClick={copyAllEmailsToClipboard}
+        >
+          Copy All Emails
+        </button>
+        <button
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-150 ease-in-out"
           onClick={() => navigate("/add-member")}
         >
           Add Team Member
