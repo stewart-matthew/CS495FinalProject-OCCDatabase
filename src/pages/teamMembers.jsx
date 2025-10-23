@@ -44,6 +44,7 @@ export default function TeamMembers() {
     }
     if (downloadStatus) {
       const timer = setTimeout(() => {
+        setDownloadStatus(null);
       }, 3000);
       return () => clearTimeout(timer);
     }
