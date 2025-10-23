@@ -201,6 +201,8 @@ export default function TeamMembers() {
             <p><strong>Email:</strong> {member.email}</p>
             <p><strong>Phone:</strong> {member.phone_number || "N/A"}</p>
             <p><strong>Position:</strong> {member.position}</p>
+            <img src={member.photo_url} alt="Profile_picture" className="max-width-200 max-height-100" />
+
           </>
         );
 
