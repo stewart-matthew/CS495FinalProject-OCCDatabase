@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 export default function TeamMembers() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState({}); // { memberId: "info" | "church" | null }
+  const [expanded, setExpanded] = useState({});
   const [churches, setChurches] = useState({});
-  const [copyStatus, setCopyStatus] = useState(null); // 'success' or 'error'
+  const [copyStatus, setCopyStatus] = useState(null);
+  const [downloadStatus, setDownloadStatus] = useState(null);
   const navigate = useNavigate();
 
   // Fetch team members
@@ -41,7 +42,12 @@ export default function TeamMembers() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [copyStatus]);
+    if (downloadStatus) {
+      const timer = setTimeout(() => {
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [copyStatus, downloadStatus]);
 
   const copyAllEmailsToClipboard = async () => {
     const emails = members
@@ -69,6 +75,47 @@ export default function TeamMembers() {
 
       setCopyStatus('success');
     }
+  };
+
+  const downloadAllAddresses = () => {
+    const addresses = members.filter(m => m.home_address && m.home_city && m.home_state && m.home_zip);
+
+    if (addresses.length === 0) {
+        setDownloadStatus('error');
+        return;
+    }
+
+    const headers = ["First Name", "Last Name", "Address", "City", "State", "Zip"];
+    const csvRows = [headers.join(',')];
+
+    addresses.forEach(member => {
+        const row = [
+            `"${member.first_name}"`,
+            `"${member.last_name}"`,
+            `"${member.home_address}"`,
+            `"${member.home_city}"`,
+            `"${member.home_state}"`,
+            `"${member.home_zip}"`
+        ].join(',');
+        csvRows.push(row);
+    });
+
+    const csvString = csvRows.join('\n');
+    
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'team_member_addresses.csv');
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setDownloadStatus('success');
+    URL.revokeObjectURL(url);
   };
 
   // Toggle info expansion for a member
@@ -110,9 +157,9 @@ export default function TeamMembers() {
   return (
     <div className="max-w-6xl mx-auto mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
       {/* Add new button and copy status notification */}
-      <div className="col-span-full flex justify-end items-center space-x-4 mb-4">
+      <div className="col-span-full flex flex-wrap justify-end items-center space-x-4 mb-4">
         {copyStatus === 'success' && (
-          <span className="text-sm font-semibold text-green-600">Emails copied!</span>
+          <span className="text-sm font-semibold text-green-600">Emails copied! 📋</span>
         )}
         {copyStatus === 'error' && (
           <span className="text-sm font-semibold text-red-600">No emails found to copy.</span>
@@ -124,6 +171,20 @@ export default function TeamMembers() {
         >
           Copy All Emails
         </button>
+
+        {downloadStatus === 'success' && (
+          <span className="text-sm font-semibold text-green-600">Addresses downloaded! 👇</span>
+        )}
+        {downloadStatus === 'error' && (
+          <span className="text-sm font-semibold text-red-600">No complete addresses found.</span>
+        )}
+        <button
+          className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 transition duration-150 ease-in-out"
+          onClick={downloadAllAddresses}
+        >
+          Download Addresses (CSV)
+        </button>
+
         <button
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-150 ease-in-out"
           onClick={() => navigate("/add-member")}
