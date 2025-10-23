@@ -7,45 +7,58 @@ export default function EditProfile() {
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({});
   const [positions, setPositions] = useState([]);
-  const [selectedPosition, setSelectedPosition] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false); // track if current user is admin
+  const [selectedPositions, setSelectedPositions] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false); // we are tracking if user is admin but false but default
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const getUserAndData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
         navigate("/login");
         return;
       }
-      setUser(user);
+      setUser(authUser);
 
       // Fetch team_member info
-      const { data: member } = await supabase
+      const { data: member , error:memberError} = await supabase
         .from("team_members")
         .select("*")
-        .eq("email", user.email)
+        .eq("email", authUser.email)
         .single();
+
+        if (memberError || !member) {
+        console.error(memberError);
+        setLoading(false);
+        return;
+      }
       setFormData(member || {});
 
       // Fetch member's current position
-      const { data: memberPos } = await supabase
+      const { data: memberPosRows, error: mpErr } = await supabase
         .from("member_positions")
         .select("position")
-        .eq("member_id", member.id)
-        .single();
+        .eq("member_id", member.id);
 
-      if (memberPos) {
-        setSelectedPosition(memberPos.position);
-        if (memberPos.position === "Admin") setIsAdmin(true);
+      if (mpErr) {
+        console.error(mpErr);
+        setSelectedPositions([]);
+      } else {
+        setSelectedPositions((memberPosRows || []).map(r => r.position));
       }
 
       // Fetch all possible positions
-      const { data: allPositions } = await supabase
+      const { data: allPositions, error: posErr } = await supabase
         .from("positions")
         .select("code");
-      setPositions(allPositions ? allPositions.map(p => p.code) : []);
+      // setPositions(allPositions ? allPositions.map(p => p.code) : []);
+      if (posErr){
+        console.error(posErr)
+        setPositions([]);
+      } else {
+        setPositions((allPositions || []).map(p => p.code));
+      }
 
       setLoading(false);
     };
@@ -53,41 +66,75 @@ export default function EditProfile() {
     getUserAndData();
   }, [navigate]);
 
+    useEffect(() => {
+      setIsAdmin(selectedPositions.includes("Admin")); // adjust literal if your code differs
+    }, [selectedPositions]);
+  
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handlePositionsChange = (e) => {
+    const values = Array.from(e.target.selectedOptions).map(opt => opt.value);
+    setSelectedPositions(values);
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !formData?.id) return;
 
     // Update team_members table
-    await supabase
+    {
+    const { error } = await supabase
       .from("team_members")
       .update({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        shirt_size: formData.shirt_size
+        first_name: formData.first_name ?? null,
+        last_name: formData.last_name ?? null,
+        shirt_size: formData.shirt_size ?? null,
       })
-      .eq("email", user.email);
+      .eq("id", formData.id);
+
+      if (error) {
+        console.error("Update team_members failed:", error);
+        // (optional) show a toast / message to user
+      }
+    }
 
     // Update member_positions only if admin
-    if (isAdmin && selectedPosition) {
-      const { data: existing } = await supabase
+    if (isAdmin) {
+      // Fetch current rows again to avoid drift
+      const { data: currentRows, error: curErr } = await supabase
         .from("member_positions")
-        .select("id")
-        .eq("member_id", formData.id)
-        .single();
+        .select("position")
+        .eq("member_id", formData.id);
 
-      if (!existing) {
-        await supabase.from("member_positions").insert({
-          member_id: formData.id,
-          position: selectedPosition
-        });
+      if (curErr) {
+        console.error("Read member_positions failed:", curErr);
       } else {
-        await supabase.from("member_positions")
-          .update({ position: selectedPosition })
-          .eq("member_id", formData.id);
+        const current = new Set((currentRows || []).map(r => r.position));
+        const desired = new Set(selectedPositions);
+
+        // compute diffs
+        const toAdd = [...desired].filter(p => !current.has(p));
+        const toRemove = [...current].filter(p => !desired.has(p));
+
+        // Insert new rows
+        if (toAdd.length > 0) {
+          const { error: insErr } = await supabase
+            .from("member_positions")
+            .insert(toAdd.map(p => ({ member_id: formData.id, position: p })));
+          if (insErr) console.error("Insert member_positions failed:", insErr);
+        }
+
+        // Delete removed rows
+        if (toRemove.length > 0) {
+          const { error: delErr } = await supabase
+            .from("member_positions")
+            .delete()
+            .eq("member_id", formData.id)
+            .in("position", toRemove);
+          if (delErr) console.error("Delete member_positions failed:", delErr);
+        }
       }
     }
 
@@ -130,13 +177,14 @@ export default function EditProfile() {
           <option value="2XL">2XL</option>
           <option value="3XL">3XL</option>
         </select>
+        <label className="block text-sm font-medium">Positions (hold Ctrl/Cmd to multi-select)</label>
         <select
-          value={selectedPosition || ""}
-          onChange={(e) => setSelectedPosition(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
-          disabled={!isAdmin} // only editable if admin
+          multiple
+          value={selectedPositions}
+          onChange={handlePositionsChange}
+          className="w-full border px-3 py-2 rounded h-40"
+          disabled={!isAdmin}
         >
-          <option value="">Select Position</option>
           {positions.map((pos) => (
             <option key={pos} value={pos}>{pos}</option>
           ))}
