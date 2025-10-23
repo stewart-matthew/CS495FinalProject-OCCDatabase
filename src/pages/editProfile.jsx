@@ -6,194 +6,177 @@ import { useNavigate } from "react-router-dom";
 export default function EditProfile() {
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({});
-  const [positions, setPositions] = useState([]);
-  const [selectedPositions, setSelectedPositions] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false); // we are tracking if user is admin but false but default
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const getUserAndData = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        navigate("/login");
-        return;
-      }
-      setUser(authUser);
+    const fetchUserData = async () => {
+      try {
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+        if (userError || !authUser) {
+          navigate("/login");
+          return;
+        }
+        setUser(authUser);
 
-      // Fetch team_member info
-      const { data: member , error:memberError} = await supabase
-        .from("team_members")
-        .select("*")
-        .eq("email", authUser.email)
-        .single();
+        const { data: member, error: memberError } = await supabase
+          .from("team_members")
+          .select("*")
+          .eq("email", authUser.email)
+          .single();
 
         if (memberError || !member) {
-        console.error(memberError);
+          alert("Could not load your profile data.");
+          setLoading(false);
+          return;
+        }
+
+        setFormData(member);
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred loading your profile.");
+      } finally {
         setLoading(false);
-        return;
       }
-      setFormData(member || {});
-
-      // Fetch member's current position
-      const { data: memberPosRows, error: mpErr } = await supabase
-        .from("member_positions")
-        .select("position")
-        .eq("member_id", member.id);
-
-      if (mpErr) {
-        console.error(mpErr);
-        setSelectedPositions([]);
-      } else {
-        setSelectedPositions((memberPosRows || []).map(r => r.position));
-      }
-
-      // Fetch all possible positions
-      const { data: allPositions, error: posErr } = await supabase
-        .from("positions")
-        .select("code");
-      // setPositions(allPositions ? allPositions.map(p => p.code) : []);
-      if (posErr){
-        console.error(posErr)
-        setPositions([]);
-      } else {
-        setPositions((allPositions || []).map(p => p.code));
-      }
-
-      setLoading(false);
     };
 
-    getUserAndData();
+    fetchUserData();
   }, [navigate]);
 
-    useEffect(() => {
-      setIsAdmin(selectedPositions.includes("Admin")); // adjust literal if your code differs
-    }, [selectedPositions]);
-  
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handlePositionsChange = (e) => {
-    const values = Array.from(e.target.selectedOptions).map(opt => opt.value);
-    setSelectedPositions(values);
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user || !formData?.id) return;
+    setLoading(true);
 
-    // Update team_members table
-    {
-    const { error } = await supabase
-      .from("team_members")
-      .update({
-        first_name: formData.first_name ?? null,
-        last_name: formData.last_name ?? null,
-        shirt_size: formData.shirt_size ?? null,
-      })
-      .eq("id", formData.id);
+    try {
+      const { error } = await supabase
+        .from("team_members")
+        .update({
+          first_name: formData.first_name ?? null,
+          last_name: formData.last_name ?? null,
+          phone_number: formData.phone_number ?? null,
+          alt_phone_number: formData.alt_phone_number ?? null,
+          home_address: formData.home_address ?? null,
+          home_city: formData.home_city ?? null,
+          home_state: formData.home_state ?? null,
+          home_zip: formData.home_zip ?? null,
+          home_county: formData.home_county ?? null,
+          date_of_birth: formData.date_of_birth ?? null,
+          shirt_size: formData.shirt_size ?? null,
+          church_affiliation_name: formData.church_affiliation_name ?? null,
+          church_affiliation_city: formData.church_affiliation_city ?? null,
+          church_affiliation_state: formData.church_affiliation_state ?? null,
+          church_affiliation_county: formData.church_affiliation_county ?? null,
+          active: formData.active ?? true,
+          member_notes: formData.member_notes ?? null,
+          admin_flag: formData.admin_flag ?? false,
+        })
+        .eq("id", formData.id);
 
       if (error) {
-        console.error("Update team_members failed:", error);
-        // (optional) show a toast / message to user
-      }
-    }
-
-    // Update member_positions only if admin
-    if (isAdmin) {
-      // Fetch current rows again to avoid drift
-      const { data: currentRows, error: curErr } = await supabase
-        .from("member_positions")
-        .select("position")
-        .eq("member_id", formData.id);
-
-      if (curErr) {
-        console.error("Read member_positions failed:", curErr);
+        alert("Error updating profile: " + error.message);
       } else {
-        const current = new Set((currentRows || []).map(r => r.position));
-        const desired = new Set(selectedPositions);
-
-        // compute diffs
-        const toAdd = [...desired].filter(p => !current.has(p));
-        const toRemove = [...current].filter(p => !desired.has(p));
-
-        // Insert new rows
-        if (toAdd.length > 0) {
-          const { error: insErr } = await supabase
-            .from("member_positions")
-            .insert(toAdd.map(p => ({ member_id: formData.id, position: p })));
-          if (insErr) console.error("Insert member_positions failed:", insErr);
-        }
-
-        // Delete removed rows
-        if (toRemove.length > 0) {
-          const { error: delErr } = await supabase
-            .from("member_positions")
-            .delete()
-            .eq("member_id", formData.id)
-            .in("position", toRemove);
-          if (delErr) console.error("Delete member_positions failed:", delErr);
-        }
+        navigate("/profile");
       }
+    } catch (err) {
+      console.error(err);
+      alert("An unexpected error occurred.");
+    } finally {
+      setLoading(false);
     }
-
-    navigate("/profile");
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p>Loading profile...</p>;
 
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white p-6 shadow rounded">
       <h1 className="text-2xl font-bold mb-4">Edit Profile</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
-          type="text"
           name="first_name"
+          placeholder="First Name"
           value={formData.first_name || ""}
           onChange={handleChange}
-          placeholder="First Name"
           className="w-full border px-3 py-2 rounded"
         />
         <input
-          type="text"
           name="last_name"
+          placeholder="Last Name"
           value={formData.last_name || ""}
           onChange={handleChange}
-          placeholder="Last Name"
           className="w-full border px-3 py-2 rounded"
         />
-        <select
+        <input
+          name="phone_number"
+          placeholder="Phone Number"
+          value={formData.phone_number || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
+          name="alt_phone_number"
+          placeholder="Alternate Phone"
+          value={formData.alt_phone_number || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
+          name="home_address"
+          placeholder="Home Address"
+          value={formData.home_address || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
+          name="home_city"
+          placeholder="Home City"
+          value={formData.home_city || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
+          name="home_state"
+          placeholder="Home State"
+          value={formData.home_state || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
+          name="home_zip"
+          placeholder="Home ZIP"
+          value={formData.home_zip || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
+          name="home_county"
+          placeholder="Home County"
+          value={formData.home_county || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
+        <input
           name="shirt_size"
+          placeholder="Shirt Size"
           value={formData.shirt_size || ""}
           onChange={handleChange}
           className="w-full border px-3 py-2 rounded"
-        >
-          <option value="">Select Shirt Size</option>
-          <option value="S">S</option>
-          <option value="M">M</option>
-          <option value="L">L</option>
-          <option value="XL">XL</option>
-          <option value="2XL">2XL</option>
-          <option value="3XL">3XL</option>
-        </select>
-        <label className="block text-sm font-medium">Positions (hold Ctrl/Cmd to multi-select)</label>
-        <select
-          multiple
-          value={selectedPositions}
-          onChange={handlePositionsChange}
-          className="w-full border px-3 py-2 rounded h-40"
-          disabled={!isAdmin}
-        >
-          {positions.map((pos) => (
-            <option key={pos} value={pos}>{pos}</option>
-          ))}
-        </select>
+        />
+        <input
+          name="member_notes"
+          placeholder="Member Notes"
+          value={formData.member_notes || ""}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        />
         <button
           type="submit"
           className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          Save Changes
+          {loading ? "Saving..." : "Save Changes"}
         </button>
       </form>
     </div>

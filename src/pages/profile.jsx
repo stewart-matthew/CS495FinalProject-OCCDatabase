@@ -13,7 +13,6 @@ const MANAGED_BY = {
   // If there are others, add them here. Roles with no reports: leave out or map to [].
 };
 
-
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [memberData, setMemberData] = useState(null);
@@ -57,74 +56,69 @@ export default function Profile() {
   }, [navigate]);
 
   const fetchMyTeam = async () => {
-  if (!memberData) return;
-  setActiveTab("myTeam");
-  setTeamLoading(true);
-  setTeamError(null);
+    if (!memberData) return;
+    setActiveTab("myTeam");
+    setTeamLoading(true);
+    setTeamError(null);
 
-  try {
-    // Which scopes does this user have?
-    const scopes = positions.flatMap((p) => {
-      const m = MANAGED_BY[p];
-      return m ? [m] : [];
-    });
+    try {
+      const scopes = positions.flatMap((p) => {
+        const m = MANAGED_BY[p];
+        return m ? [m] : [];
+      });
 
-    if (scopes.length === 0) {
-      setTeam([]);
-      setTeamLoading(false);
-      return;
-    }
+      if (scopes.length === 0) {
+        setTeam([]);
+        setTeamLoading(false);
+        return;
+      }
 
-    if (scopes.includes("ALL")) {
+      if (scopes.includes("ALL")) {
+        const { data, error } = await supabase
+          .from("team_members")
+          .select("id, first_name, last_name, email, region")
+          .eq("region", "West Alabama")
+          .order("last_name", { ascending: true });
+
+        if (error) throw error;
+        setTeam(data || []);
+        setTeamLoading(false);
+        return;
+      }
+
+      const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
+
       const { data, error } = await supabase
-        .from("team_members")
-        .select("id, first_name, last_name, email, region")
-        .eq("region", "West Alabama") 
-        .order("last_name", { ascending: true });
+        .from("member_positions")
+        .select("position, member:member_id (id, first_name, last_name, email, region)")
+        .in("position", managedPositions);
 
       if (error) throw error;
-      setTeam(data || []);
-      setTeamLoading(false);
-      return;
-    }
 
-    // Otherwise, collect managed position codes
-    const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
+      const onlyWest = (data || []).filter(
+        (row) => (row.member?.region || "") === "West Alabama"
+      );
 
-    // Find members who hold ANY of those positions
-    // We query member_positions and join to team_members
-    const { data, error } = await supabase
-      .from("member_positions")
-      .select("position, member:member_id (id, first_name, last_name, email, region)")
-      .in("position", managedPositions);
-
-    if (error) throw error;
-
-    const onlyWest = (data || []).filter(
-      (row) => (row.member?.region || "") === "West Alabama" // ADJUST if region on a related table
-    );
-
-    // De-duplicate by member.id (in case someone matches multiple managed positions)
-    const seen = new Set();
-    const uniqueMembers = [];
-    for (const row of onlyWest) {
-      const m = row.member;
-      if (m && !seen.has(m.id)) {
-        seen.add(m.id);
-        uniqueMembers.push(m);
+      const seen = new Set();
+      const uniqueMembers = [];
+      for (const row of onlyWest) {
+        const m = row.member;
+        if (m && !seen.has(m.id)) {
+          seen.add(m.id);
+          uniqueMembers.push(m);
+        }
       }
-    }
 
-    uniqueMembers.sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-    setTeam(uniqueMembers);
-  } catch (e) {
-    console.error(e);
-    setTeamError("Could not load your team.");
-    setTeam([]);
-  } finally {
-    setTeamLoading(false);
-  }
-};
+      uniqueMembers.sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+      setTeam(uniqueMembers);
+    } catch (e) {
+      console.error(e);
+      setTeamError("Could not load your team.");
+      setTeam([]);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -165,12 +159,21 @@ export default function Profile() {
             )}
           </div>
 
-          <Link
-            to="/editProfile"
-            className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Edit Information
-          </Link>
+          <div className="mt-4 flex gap-2">
+            <Link
+              to="/editProfile"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Edit Information
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="inline-block bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              Logout
+            </button>
+          </div>
         </>
       ) : null}
 
@@ -192,7 +195,6 @@ export default function Profile() {
                     <div className="font-medium">{m.first_name} {m.last_name}</div>
                     <div className="text-sm text-gray-600">{m.email}</div>
                   </div>
-                  {/* TODO: replace with your actual member-details route */}
                   <Link
                     to={`/member/${m.id}`}
                     className="text-blue-600 hover:underline"
