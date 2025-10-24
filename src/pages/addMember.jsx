@@ -22,16 +22,16 @@ export default function AddMember() {
     church_affiliation_city: "",
     church_affiliation_state: "",
     church_affiliation_county: "",
-    active: true,
     member_notes: "",
+    active: true, // Always true by default — no checkbox needed
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -49,8 +49,12 @@ export default function AddMember() {
     } else {
       navigate("/profile");
     }
+
     setLoading(false);
   };
+
+  // Filter out "active" so it doesn't appear in the form fields
+  const formFields = Object.keys(form).filter((field) => field !== "active");
 
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
@@ -59,31 +63,19 @@ export default function AddMember() {
       {error && <p className="text-red-600 mb-3">{error}</p>}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-        {Object.keys(form).map((field) => (
-          field === "active" ? (
-            <label key={field} className="col-span-2 flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="active"
-                checked={form.active}
-                onChange={handleChange}
-              />
-              Active Member
+        {formFields.map((field) => (
+          <div key={field} className="col-span-1">
+            <label className="block text-sm font-medium mb-1 capitalize">
+              {field.replaceAll("_", " ")}
             </label>
-          ) : (
-            <div key={field} className="col-span-1">
-              <label className="block text-sm font-medium mb-1 capitalize">
-                {field.replaceAll("_", " ")}
-              </label>
-              <input
-                type={field === "date_of_birth" ? "date" : "text"}
-                name={field}
-                value={form[field]}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-          )
+            <input
+              type={field === "date_of_birth" ? "date" : "text"}
+              name={field}
+              value={form[field]}
+              onChange={handleChange}
+              className="w-full border rounded-md px-3 py-2"
+            />
+          </div>
         ))}
 
         <div className="col-span-2 flex justify-end gap-2 mt-4">
