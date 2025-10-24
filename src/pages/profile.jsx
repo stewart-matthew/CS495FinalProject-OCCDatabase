@@ -6,11 +6,12 @@ import { useNavigate, Link } from "react-router-dom";
 const MANAGED_BY = {
   "Area Coordinator": "ALL", // sees all West Alabama members
   "Church Relations Coordinator": ["Church Relations Team Member"],
-  "Logistics Coordinator": ["Central Drop-off Team Leader", "Drop-off Team Leader"],
+  "Logistics Coordinator": ["Central Dropoff Team Leader", "Dropoff Team Leader"],
   "Prayer Team Coordinator": ["Prayer Team Member"],
-  "Student Relations Coordinator": ["Student Relations Team Member"],
   "Community Relations Coordinator": ["Community Relations Team Member"],
-  // If there are others, add them here. Roles with no reports: leave out or map to [].
+  //later add Student Relations or Media roles if needed:
+  "Student Relations Coordinator": ["Student Relations Team Member"],
+  "Media Support Team Member": [], // not a leadership role, included for clarity
 };
 
 export default function Profile() {
