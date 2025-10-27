@@ -25,7 +25,6 @@ export default function TeamMembers() {
         if (error) {
           console.error("Error fetching current user:", error);
         } else {
-          console.log("Logged-in user:", memberData.first_name, "Admin flag:", memberData.admin_flag);
           setCurrentUser(memberData);
         }
       }
@@ -49,7 +48,6 @@ export default function TeamMembers() {
           position: m.member_positions?.position || "N/A",
         }));
         setMembers(formattedMembers);
-        console.log("Fetched members:", formattedMembers);
       }
       setLoading(false);
     };
@@ -156,11 +154,14 @@ export default function TeamMembers() {
   };
 
   if (loading) return <p className="text-center mt-10">Loading team members...</p>;
-  if (members.length === 0) return <p className="text-center mt-10">No team members found.</p>;
 
   const isAdmin =
     currentUser &&
     (currentUser.admin_flag === true || currentUser.admin_flag === "true");
+
+  // Split members into active and former
+  const activeMembers = members.filter((m) => m.active === true || m.active === "true");
+  const formerMembers = members.filter((m) => m.active === false || m.active === "false");
 
   return (
     <div className="max-w-6xl mx-auto mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
@@ -194,7 +195,6 @@ export default function TeamMembers() {
           Download Addresses (CSV)
         </button>
 
-        {/* Show Add button only for admins */}
         {isAdmin && (
           <button
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -205,8 +205,8 @@ export default function TeamMembers() {
         )}
       </div>
 
-      {/* Member Cards */}
-      {members.map((member) => {
+      {/* Active Members */}
+      {activeMembers.map((member) => {
         const basicInfo = (
           <>
             <h2 className="text-xl font-bold">
@@ -277,7 +277,6 @@ export default function TeamMembers() {
               </div>
             )}
 
-            {/* Only admins can edit members */}
             {isAdmin && (
               <button
                 onClick={() => navigate(`/edit-member/${member.id}`)}
@@ -289,6 +288,95 @@ export default function TeamMembers() {
           </div>
         );
       })}
+
+      {/* Former Members Section (admins only) */}
+      {isAdmin && formerMembers.length > 0 && (
+        <>
+          <div className="col-span-full mt-8 mb-4">
+            <h2 className="text-2xl font-bold">Former Members</h2>
+          </div>
+          {formerMembers.map((member) => {
+            const basicInfo = (
+              <>
+                <h2 className="text-xl font-bold">
+                  {member.first_name} {member.last_name}
+                </h2>
+                <p><strong>Email:</strong> {member.email}</p>
+                <p><strong>Phone:</strong> {member.phone_number || "N/A"}</p>
+                <p><strong>Position:</strong> {member.position}</p>
+                {member.photo_url && (
+                  <img
+                    src={member.photo_url}
+                    alt="Profile"
+                    className="max-w-full h-auto rounded mt-2"
+                  />
+                )}
+              </>
+            );
+
+            const moreInfo = (
+              <div className="mt-4 text-gray-700 space-y-1">
+                <p><strong>Alt Phone:</strong> {member.alt_phone_number || "N/A"}</p>
+                <p><strong>Home Address:</strong> {member.home_address || "N/A"}</p>
+                <p><strong>City:</strong> {member.home_city || "N/A"}</p>
+                <p><strong>State:</strong> {member.home_state || "N/A"}</p>
+                <p><strong>Zip:</strong> {member.home_zip || "N/A"}</p>
+                <p><strong>County:</strong> {member.home_county || "N/A"}</p>
+                <p><strong>Birth Date:</strong> {member.date_of_birth || "N/A"}</p>
+                <p><strong>Shirt Size:</strong> {member.shirt_size || "N/A"}</p>
+                <p><strong>Church Affiliation:</strong> {member.church_affiliation_name || "N/A"}</p>
+                <p><strong>Active:</strong> {member.active ? "Yes" : "No"}</p>
+                <p><strong>Member Notes:</strong> {member.member_notes || "N/A"}</p>
+              </div>
+            );
+
+            return (
+              <div key={member.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
+                {basicInfo}
+
+                <div className="flex space-x-2 mt-4">
+                  <button
+                    onClick={() => toggleInfo(member.id)}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                  >
+                    {expanded[member.id] === "info" ? "Less Info" : "More Info"}
+                  </button>
+
+                  <button
+                    onClick={() => toggleChurch(member)}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                  >
+                    {expanded[member.id] === "church" ? "Hide Church" : "My Church"}
+                  </button>
+                </div>
+
+                {expanded[member.id] === "info" && moreInfo}
+
+                {expanded[member.id] === "church" && churches[member.id] && (
+                  <div className="mt-3 bg-gray-100 p-3 rounded">
+                    <h3 className="font-semibold mb-2">Affiliated Church:</h3>
+                    <p>
+                      <strong>Name:</strong>{" "}
+                      {churches[member.id].church_name?.replace(/_/g, " ") || "N/A"}
+                    </p>
+                    <p><strong>City:</strong> {churches[member.id].physical_city || "N/A"}</p>
+                    <p><strong>State:</strong> {churches[member.id].physical_state || "N/A"}</p>
+                    <p><strong>Zip:</strong> {churches[member.id].physical_zip || "N/A"}</p>
+                    <p><strong>Phone:</strong> {churches[member.id].phone_number || "N/A"}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => navigate(`/edit-member/${member.id}`)}
+                  className="mt-2 w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600"
+                >
+                  Edit Team Member
+                </button>
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
