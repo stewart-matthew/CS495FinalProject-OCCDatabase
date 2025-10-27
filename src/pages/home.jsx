@@ -174,7 +174,14 @@ export default function Home() {
               <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>
               {church.shoebox_2025 !== undefined && <p className="text-gray-700"><strong>Shoebox 2025:</strong> {church.shoebox_2025}</p>}
               {church.physical_zip && <p className="text-gray-700"><strong>Zip Code:</strong> {church.physical_zip}</p>}
-            </div>
+                </div>
+                {church.photo_url && (
+                    <img
+                        src={church.photo_url}
+                        alt="Profile"
+                        className="max-w-full h-auto rounded mt-2"
+                    />
+                )}
             <button
               className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
