@@ -4,14 +4,13 @@ import { supabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
 
 const MANAGED_BY = {
-  "Area Coordinator": "ALL", // sees all West Alabama members
+  "Area Coordinator": "ALL",
   "Church Relations Coordinator": ["Church Relations Team Member"],
   "Logistics Coordinator": ["Central Dropoff Team Leader", "Dropoff Team Leader"],
   "Prayer Team Coordinator": ["Prayer Team Member"],
   "Community Relations Coordinator": ["Community Relations Team Member"],
-  //later add Student Relations or Media roles if needed:
   "Student Relations Coordinator": ["Student Relations Team Member"],
-  "Media Support Team Member": [], // not a leadership role, included for clarity
+  "Media Support Team Member": [], 
 };
 
 export default function Profile() {
@@ -38,88 +37,96 @@ export default function Profile() {
         .from("team_members")
         .select("*")
         .eq("email", authUser.email)
-        .single();
+        .maybeSingle();
 
-      if (memberError || !member) return;
-      setMemberData(member);
-      
-      const { data: posRows, error: posError } = await supabase
-        .from("member_positions")
-        .select("position")
-        .eq("member_id", member.id);
-
-      if (!posError && posRows) {
-        setPositions(posRows.map((r) => r.position));
+      if (memberError) {
+        console.error(memberError);
       }
+
+      setMemberData(member || null);
+
+      if (member?.id) {
+        const { data: posRows, error: posError } = await supabase
+          .from("member_positions")
+          .select("position")
+          .eq("member_id", member.id);
+
+        if (!posError && posRows) {
+          setPositions(posRows.map(r => r.position));
+        }
+      } else {
+        setPositions([]); // no member found → clear positions array
+      }
+
     };
 
     getUserAndData();
   }, [navigate]);
 
   const fetchMyTeam = async () => {
-    if (!memberData) return;
-    setActiveTab("myTeam");
-    setTeamLoading(true);
-    setTeamError(null);
+  if (!memberData) return;
+  setActiveTab("myTeam");
+  setTeamLoading(true);
+  setTeamError(null);
 
-    try {
-      const scopes = positions.flatMap((p) => {
-        const m = MANAGED_BY[p];
-        return m ? [m] : [];
-      });
+  try {
+    // derive scopes
+    const scopes = positions.flatMap(p => {
+      const m = MANAGED_BY[p]; // uses your map at top of file
+      return m ? [m] : [];
+    });
 
-      if (scopes.length === 0) {
-        setTeam([]);
-        setTeamLoading(false);
-        return;
-      }
-
-      if (scopes.includes("ALL")) {
-        const { data, error } = await supabase
-          .from("team_members")
-          .select("id, first_name, last_name, email, region")
-          .eq("region", "West Alabama")
-          .order("last_name", { ascending: true });
-
-        if (error) throw error;
-        setTeam(data || []);
-        setTeamLoading(false);
-        return;
-      }
-
-      const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
-
-      const { data, error } = await supabase
-        .from("member_positions")
-        .select("position, member:member_id (id, first_name, last_name, email, region)")
-        .in("position", managedPositions);
-
-      if (error) throw error;
-
-      const onlyWest = (data || []).filter(
-        (row) => (row.member?.region || "") === "West Alabama"
-      );
-
-      const seen = new Set();
-      const uniqueMembers = [];
-      for (const row of onlyWest) {
-        const m = row.member;
-        if (m && !seen.has(m.id)) {
-          seen.add(m.id);
-          uniqueMembers.push(m);
-        }
-      }
-
-      uniqueMembers.sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-      setTeam(uniqueMembers);
-    } catch (e) {
-      console.error(e);
-      setTeamError("Could not load your team.");
+    if (scopes.length === 0) {
       setTeam([]);
-    } finally {
-      setTeamLoading(false);
+      return;
     }
-  };
+
+    if (scopes.includes("ALL")) {
+      const { data, error } = await supabase
+        .from("team_members")
+        .select("id, first_name, last_name, email")
+        .order("last_name", { ascending: true });
+      if (error) throw error;
+      setTeam(data || []);
+      return;
+    }
+
+    // otherwise, fetch member_ids for the managed positions (no join)
+    const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
+
+    const { data: mpRows, error: mpErr } = await supabase
+      .from("member_positions")
+      .select("member_id, position")
+      .in("position", managedPositions);
+
+    if (mpErr) throw mpErr;
+
+    const ids = [...new Set((mpRows || []).map(r => r.member_id))];
+    if (ids.length === 0) {
+      setTeam([]);
+      return;
+    }
+
+    // now fetch those members and filter to West Alabama
+    const { data: members, error: tmErr } = await supabase
+      .from("team_members")
+      .select("id, first_name, last_name, email")
+      .in("id", ids)
+
+    if (tmErr) throw tmErr;
+
+    const unique = [...new Map((members || []).map(m => [m.id, m])).values()];
+    unique.sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+    setTeam(unique);
+  } catch (e) {
+    console.error(e);
+    setTeamError("Could not load your team.");
+    setTeam([]);
+  } finally {
+    setTeamLoading(false);
+  }
+};
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
