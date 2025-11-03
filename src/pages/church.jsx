@@ -52,7 +52,7 @@ export default function ChurchPage() {
       <div className="mt-4 flex gap-2">
         <button
           className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/home")}
         >
           Back
         </button>

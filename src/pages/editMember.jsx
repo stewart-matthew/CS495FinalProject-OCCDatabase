@@ -111,7 +111,7 @@ export default function EditMember() {
             console.error(error);
             setError(error.message);
         } else {
-            navigate("/profile");
+            navigate("/team-members");
         }
         setLoading(false);
     };
