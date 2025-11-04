@@ -9,6 +9,8 @@ export default function ChurchPage() {
   const [loading, setLoading] = useState(true);
   const [individualsLoading, setIndividualsLoading] = useState(true);
   const navigate = useNavigate();
+  
+  const SHOEBOX_YEAR = 2025; 
 
   useEffect(() => {
     async function getChurch() {
@@ -37,6 +39,8 @@ export default function ChurchPage() {
     getIndividuals();
   }, [churchName]);
 
+  const shoeboxFieldName = `shoebox_${SHOEBOX_YEAR}`;
+
   if (loading) return <p>Loading church...</p>;
   if (!church) return <p>Church not found.</p>;
 
@@ -46,9 +50,8 @@ export default function ChurchPage() {
       <p className="text-gray-700 mb-2">{church.physical_city}, {church.physical_state}</p>
       <p className="text-gray-700 mb-2">{church.physical_county} County</p>
       <p className="text-gray-700 mb-2">Zip: {church.physical_zip}</p>
-      {church.shoebox_2025 !== undefined && <p className="text-gray-700 mb-2">Shoebox 2025: {church.shoebox_2025}</p>}
+      {church[shoeboxFieldName] !== undefined && <p className="text-gray-700 mb-2">Shoebox {SHOEBOX_YEAR}: {church[shoeboxFieldName]}</p>}
 
-      {/* Back & Edit Buttons */}
       <div className="mt-4 flex gap-2">
         <button
           className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
@@ -65,7 +68,15 @@ export default function ChurchPage() {
         </button>
       </div>
 
-      {/* Individuals Table */}
+      <div className="mt-4 flex gap-2">
+        <button
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+          onClick={() => navigate(`/edit-shoebox-count/${encodeURIComponent(church.church_name)}`)}
+        >
+          Edit Shoebox Count
+        </button>
+      </div>
+
       <h2 className="text-2xl font-semibold mt-8 mb-4">Individuals</h2>
       {individualsLoading ? (
         <p>Loading individuals...</p>

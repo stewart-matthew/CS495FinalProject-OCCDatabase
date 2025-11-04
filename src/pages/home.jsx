@@ -38,9 +38,108 @@ function PrivateBucketImage({ filePath, className }) {
     return <img src={signedUrl} alt="Church" className={className} />;
 }
 
+    const [updates, setUpdates] = useState({});
+    const [loading, setLoading] = useState(false);
+    const shoeboxYear = shoeboxFieldName.split('_')[1];
+
+    useEffect(() => {
+        if (isOpen) {
+            const initialUpdates = {};
+                initialUpdates[church.church_name] = church[shoeboxFieldName] || '';
+            });
+            setUpdates(initialUpdates);
+        }
+    }, [isOpen, churches, shoeboxFieldName]);
+    const handleChange = (churchName, value) => {
+        const numericValue = value === '' ? null : parseInt(value, 10);
+        setUpdates(prev => ({
+            ...prev,
+            [churchName]: isNaN(numericValue) ? '' : value,
+        }));
+    };
+
+    const handleSubmit = async () => {
+        setLoading(true);
+        const updatesToRun = [];
+
+        churches.forEach(church => {
+            const oldValue = church[shoeboxFieldName] || null;
+            const newValue = updates[church.church_name] === '' ? null : parseInt(updates[church.church_name], 10);
+
+            if (newValue !== oldValue) {
+                const updatePayload = { [shoeboxFieldName]: newValue };
+                updatesToRun.push(
+                    supabase
+                        .from("church")
+                        .update(updatePayload)
+                        .eq("church_name", church.church_name)
+                );
+            }
+        });
+
+        await Promise.all(updatesToRun);
+        setLoading(false);
+        refreshChurches();
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <h3 className="text-xl font-bold mb-4">Update {shoeboxYear} Shoebox Counts</h3>
+                <div className="max-h-96 overflow-y-auto mb-4 border p-2 rounded">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Church</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {churches.map((church) => (
+                                <tr key={church.church_name}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{church.church_name.replace(/_/g, " ")}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-28">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={updates[church.church_name] === null ? '' : updates[church.church_name]}
+                                            onChange={(e) => handleChange(church.church_name, e.target.value)}
+                                            className="w-full border rounded-md p-1 text-center"
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="flex justify-end space-x-4">
+                    <button
+                        onClick={onClose}
+                        className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                        disabled={loading}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-green-400"
+                        disabled={loading}
+                    >
+                        {loading ? "Saving..." : "Save All Changes"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Home() {
     const [churches, setChurches] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [filters, setFilters] = useState({
         churchName: "",
         zipcode: "",
@@ -49,6 +148,10 @@ export default function Home() {
         selectedCounties: [],
     });
     const navigate = useNavigate();
+
+    const SHOEBOX_YEAR = 2025;
+    const shoeboxFieldName = `shoebox_${SHOEBOX_YEAR}`;
+    const modalShoeboxField = `shoebox_${SHOEBOX_YEAR}`;
 
     // Fetch churches with optional filters
     async function getChurches(filterValues = filters) {
@@ -101,6 +204,33 @@ export default function Home() {
 
     return (
         <div className="max-w-6xl mx-auto mt-10">
+            <UpdateShoeboxModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                churches={churches}
+                shoeboxFieldName={modalShoeboxField}
+                refreshChurches={() => getChurches()}
+            />
+            
+            <div className="flex justify-between items-center mb-6">
+                <button
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                    onClick={() => setIsModalOpen(true)}
+                >
+                    Update  {SHOEBOX_YEAR} Shoebox Counts
+                </button>
+
+                {/* Add Church Button */}
+                <div className="flex justify-end">
+                    <button
+                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        onClick={() => navigate("/add-church")}
+                    >
+                        Add Church
+                    </button>
+                </div>
+            </div>
+
             {/* County Filters */}
             <div className="mb-6 bg-blue-50 p-4 rounded-lg shadow-sm">
                 <h2 className="text-lg font-semibold mb-3">Filter by County</h2>
@@ -186,16 +316,6 @@ export default function Home() {
                         </select>
                     </div>
                 </div>
-            </div>
-
-            {/* Add Church Button */}
-            <div className="flex justify-end mb-4">
-                <button
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                    onClick={() => navigate("/add-church")}
-                >
-                    Add Church
-                </button>
             </div>
 
             {/* Church Cards */}
