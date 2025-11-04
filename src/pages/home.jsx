@@ -38,6 +38,7 @@ function PrivateBucketImage({ filePath, className }) {
     return <img src={signedUrl} alt="Church" className={className} />;
 }
 
+function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refreshChurches }) {
     const [updates, setUpdates] = useState({});
     const [loading, setLoading] = useState(false);
     const shoeboxYear = shoeboxFieldName.split('_')[1];
@@ -45,11 +46,13 @@ function PrivateBucketImage({ filePath, className }) {
     useEffect(() => {
         if (isOpen) {
             const initialUpdates = {};
+            churches.forEach(church => {
                 initialUpdates[church.church_name] = church[shoeboxFieldName] || '';
             });
             setUpdates(initialUpdates);
         }
     }, [isOpen, churches, shoeboxFieldName]);
+
     const handleChange = (churchName, value) => {
         const numericValue = value === '' ? null : parseInt(value, 10);
         setUpdates(prev => ({
