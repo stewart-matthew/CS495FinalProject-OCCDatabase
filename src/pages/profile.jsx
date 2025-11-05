@@ -64,68 +64,105 @@ export default function Profile() {
   }, [navigate]);
 
   const fetchMyTeam = async () => {
-  if (!memberData) return;
-  setActiveTab("myTeam");
-  setTeamLoading(true);
-  setTeamError(null);
+    if (!memberData) return;
+    setActiveTab("myTeam");
+    setTeamLoading(true);
+    setTeamError(null);
 
-  try {
-    // derive scopes
-    const scopes = positions.flatMap(p => {
-      const m = MANAGED_BY[p]; // uses your map at top of file
-      return m ? [m] : [];
-    });
+    try {
+      const scopes = positions.flatMap((p) => {
+        const m = MANAGED_BY[p];
+        return m ? [m] : [];
+      });
 
-    if (scopes.length === 0) {
-      setTeam([]);
-      return;
-    }
+      if (scopes.length === 0) {
+        setTeam([]);
+        return;
+      }
 
-    if (scopes.includes("ALL")) {
-      const { data, error } = await supabase
+      if (scopes.includes("ALL")) {
+        const { data, error } = await supabase
+          .from("team_members")
+          .select("id, first_name, last_name, email")
+          .order("last_name", { ascending: true });
+        if (error) throw error;
+
+        const members = data || [];
+
+        // fetch and attach their positions
+        const memberIds = members.map((m) => m.id);
+        const { data: positionsData, error: posErr } = await supabase
+          .from("member_positions")
+          .select("member_id, position")
+          .in("member_id", memberIds);
+
+        if (!posErr && positionsData) {
+          const posMap = {};
+          positionsData.forEach((p) => {
+            if (!posMap[p.member_id]) posMap[p.member_id] = [];
+            posMap[p.member_id].push(p.position);
+          });
+          members.forEach((m) => {
+            m.positions = posMap[m.id] || [];
+          });
+        }
+
+        setTeam(members);
+        return;
+      }
+
+      const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
+
+      const { data: mpRows, error: mpErr } = await supabase
+        .from("member_positions")
+        .select("member_id, position")
+        .in("position", managedPositions);
+
+      if (mpErr) throw mpErr;
+
+      const ids = [...new Set((mpRows || []).map((r) => r.member_id))];
+      if (ids.length === 0) {
+        setTeam([]);
+        return;
+      }
+
+      const { data: members, error: tmErr } = await supabase
         .from("team_members")
         .select("id, first_name, last_name, email")
-        .order("last_name", { ascending: true });
-      if (error) throw error;
-      setTeam(data || []);
-      return;
-    }
+        .in("id", ids);
 
-    // otherwise, fetch member_ids for the managed positions (no join)
-    const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
+      if (tmErr) throw tmErr;
 
-    const { data: mpRows, error: mpErr } = await supabase
-      .from("member_positions")
-      .select("member_id, position")
-      .in("position", managedPositions);
+      // fetch and attach their positions
+      const { data: positionsData, error: posErr } = await supabase
+        .from("member_positions")
+        .select("member_id, position")
+        .in("member_id", ids);
 
-    if (mpErr) throw mpErr;
+      if (!posErr && positionsData) {
+        const posMap = {};
+        positionsData.forEach((p) => {
+          if (!posMap[p.member_id]) posMap[p.member_id] = [];
+          posMap[p.member_id].push(p.position);
+        });
+        members.forEach((m) => {
+          m.positions = posMap[m.id] || [];
+        });
+      }
 
-    const ids = [...new Set((mpRows || []).map(r => r.member_id))];
-    if (ids.length === 0) {
+      const meId = memberData?.id;
+      const unique = [...new Map((members || []).map((m) => [m.id, m])).values()]
+        .filter((m) => m.id !== meId)
+        .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+      setTeam(unique);
+    } catch (e) {
+      console.error(e);
+      setTeamError("Could not load your team.");
       setTeam([]);
-      return;
+    } finally {
+      setTeamLoading(false);
     }
-
-    // now fetch those members and filter to West Alabama
-    const { data: members, error: tmErr } = await supabase
-      .from("team_members")
-      .select("id, first_name, last_name, email")
-      .in("id", ids)
-
-    if (tmErr) throw tmErr;
-
-    const unique = [...new Map((members || []).map(m => [m.id, m])).values()];
-    unique.sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-    setTeam(unique);
-  } catch (e) {
-    console.error(e);
-    setTeamError("Could not load your team.");
-    setTeam([]);
-  } finally {
-    setTeamLoading(false);
-  }
-};
+  };
 
 
   const handleLogout = async () => {
@@ -200,7 +237,13 @@ export default function Profile() {
               {team.map((m) => (
                 <li key={m.id} className="py-2 flex items-center justify-between">
                   <div>
-                    <div className="font-medium">{m.first_name} {m.last_name}</div>
+                    <div className="font-medium">{m.first_name} {m.last_name}
+                      {m.positions && m.positions.length > 0 && (
+                        <span className="ml-2 text-gray-500 text-sm italic">
+                          ({m.positions.join(", ")})
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-600">{m.email}</div>
                   </div>
                   <Link
