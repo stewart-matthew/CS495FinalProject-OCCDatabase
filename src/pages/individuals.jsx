@@ -1,0 +1,371 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+
+export default function Individuals() {
+    const [individuals, setIndividuals] = useState([]);
+    const [filteredIndividuals, setFilteredIndividuals] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [copyStatus, setCopyStatus] = useState(null);
+    
+    // Filter states
+    const [filters, setFilters] = useState({
+        churchName: "",
+        activeToEmails: null, // null = all, true = active, false = inactive
+        craftIdeas: false,
+        packingPartyIdeas: false,
+        fundraisingIdeas: false,
+        gettingMorePeopleInvolved: false,
+        presentationAtChurch: false,
+        resources: false,
+        other: false,
+    });
+    
+    // Sort state
+    const [sortBy, setSortBy] = useState("name_asc"); // name_asc, name_desc, church_asc, church_desc
+
+    useEffect(() => {
+        async function getIndividuals() {
+            const { data, error } = await supabase
+                .from("individuals")
+                .select("*")
+                .order("first_name", { ascending: true });
+            
+            if (error) {
+                console.error("Error fetching individuals:", error);
+                setIndividuals([]);
+            } else {
+                setIndividuals(data || []);
+            }
+            setLoading(false);
+        }
+        getIndividuals();
+    }, []);
+
+    // Apply filters and sorting
+    useEffect(() => {
+        let filtered = [...individuals];
+
+        // Filter by church name
+        if (filters.churchName) {
+            const searchValue = filters.churchName.replace(/ /g, "_");
+            filtered = filtered.filter(ind => 
+                ind.church_name && ind.church_name.toLowerCase().includes(searchValue.toLowerCase())
+            );
+        }
+
+        // Filter by active to emails
+        if (filters.activeToEmails !== null) {
+            filtered = filtered.filter(ind => ind.active_to_emails === filters.activeToEmails);
+        }
+
+        // Filter by resource checkboxes
+        if (filters.craftIdeas) {
+            filtered = filtered.filter(ind => ind.craft_ideas === true);
+        }
+        if (filters.packingPartyIdeas) {
+            filtered = filtered.filter(ind => ind.packing_party_ideas === true);
+        }
+        if (filters.fundraisingIdeas) {
+            filtered = filtered.filter(ind => ind.fundraising_ideas === true);
+        }
+        if (filters.gettingMorePeopleInvolved) {
+            filtered = filtered.filter(ind => ind.getting_more_people_involved === true);
+        }
+        if (filters.presentationAtChurch) {
+            filtered = filtered.filter(ind => ind.presentation_at_church_group === true);
+        }
+        if (filters.resources) {
+            filtered = filtered.filter(ind => ind.resources === true);
+        }
+        if (filters.other) {
+            filtered = filtered.filter(ind => ind.other === true && ind.other_description);
+        }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case "name_asc":
+                    const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+                    const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+                    return nameA.localeCompare(nameB);
+                case "name_desc":
+                    const nameA2 = `${a.first_name} ${a.last_name}`.toLowerCase();
+                    const nameB2 = `${b.first_name} ${b.last_name}`.toLowerCase();
+                    return nameB2.localeCompare(nameA2);
+                case "church_asc":
+                    const churchA = (a.church_name || "").toLowerCase();
+                    const churchB = (b.church_name || "").toLowerCase();
+                    return churchA.localeCompare(churchB);
+                case "church_desc":
+                    const churchA2 = (a.church_name || "").toLowerCase();
+                    const churchB2 = (b.church_name || "").toLowerCase();
+                    return churchB2.localeCompare(churchA2);
+                default:
+                    return 0;
+            }
+        });
+
+        setFilteredIndividuals(filtered);
+    }, [individuals, filters, sortBy]);
+
+    const copyAllEmails = async () => {
+        const emails = filteredIndividuals
+            .filter(ind => ind.email)
+            .map(ind => ind.email)
+            .join(", ");
+
+        if (!emails) {
+            setCopyStatus("error");
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(emails);
+            setCopyStatus("success");
+            setTimeout(() => setCopyStatus(null), 3000);
+        } catch (err) {
+            console.error("Clipboard copy failed:", err);
+            setCopyStatus("error");
+            setTimeout(() => setCopyStatus(null), 3000);
+        }
+    };
+
+    if (loading) return <p className="text-center mt-10">Loading individuals...</p>;
+
+    return (
+        <div className="max-w-7xl mx-auto mt-10">
+            <h1 className="text-3xl font-bold mb-6">Individuals</h1>
+
+            {/* Filters Section */}
+            <div className="bg-gray-100 p-4 rounded-lg mb-6">
+                <h2 className="text-lg font-semibold mb-4">Filters</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Church Name</label>
+                        <input
+                            type="text"
+                            placeholder="Search by church..."
+                            value={filters.churchName}
+                            onChange={(e) => setFilters({ ...filters, churchName: e.target.value })}
+                            className="w-full border rounded-md p-2"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Active to Emails</label>
+                        <select
+                            value={filters.activeToEmails === null ? "all" : filters.activeToEmails ? "true" : "false"}
+                            onChange={(e) => {
+                                const value = e.target.value === "all" ? null : e.target.value === "true";
+                                setFilters({ ...filters, activeToEmails: value });
+                            }}
+                            className="w-full border rounded-md p-2"
+                        >
+                            <option value="all">All</option>
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Sort By</label>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="w-full border rounded-md p-2"
+                        >
+                            <option value="name_asc">Name (A → Z)</option>
+                            <option value="name_desc">Name (Z → A)</option>
+                            <option value="church_asc">Church (A → Z)</option>
+                            <option value="church_desc">Church (Z → A)</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-end">
+                        <button
+                            onClick={copyAllEmails}
+                            className="w-full bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                        >
+                            {copyStatus === "success" ? "✓ Copied!" : copyStatus === "error" ? "No Emails" : "Copy All Emails"}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Resource Checkboxes */}
+                <div className="mt-4">
+                    <label className="block text-sm font-medium mb-2">Filter by Resources Requested:</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.craftIdeas}
+                                onChange={(e) => setFilters({ ...filters, craftIdeas: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Craft Ideas</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.packingPartyIdeas}
+                                onChange={(e) => setFilters({ ...filters, packingPartyIdeas: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Packing Party Ideas</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.fundraisingIdeas}
+                                onChange={(e) => setFilters({ ...filters, fundraisingIdeas: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Fundraising Ideas</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.gettingMorePeopleInvolved}
+                                onChange={(e) => setFilters({ ...filters, gettingMorePeopleInvolved: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Getting More People Involved</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.presentationAtChurch}
+                                onChange={(e) => setFilters({ ...filters, presentationAtChurch: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Presentation at Church/Group</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.resources}
+                                onChange={(e) => setFilters({ ...filters, resources: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Resources</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.other}
+                                onChange={(e) => setFilters({ ...filters, other: e.target.checked })}
+                                className="rounded"
+                            />
+                            <span className="text-sm">Other</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => {
+                        setFilters({
+                            churchName: "",
+                            activeToEmails: null,
+                            craftIdeas: false,
+                            packingPartyIdeas: false,
+                            fundraisingIdeas: false,
+                            gettingMorePeopleInvolved: false,
+                            presentationAtChurch: false,
+                            resources: false,
+                            other: false,
+                        });
+                        setSortBy("name_asc");
+                    }}
+                    className="mt-4 bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+                >
+                    Clear All Filters
+                </button>
+            </div>
+
+            {/* Results Count */}
+            <div className="mb-4">
+                <p className="text-gray-600">
+                    Showing {filteredIndividuals.length} of {individuals.length} individuals
+                </p>
+            </div>
+
+            {/* Individuals Table */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Church</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active to Emails</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resources Requested</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredIndividuals.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                                        No individuals found matching the filters.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredIndividuals.map((ind) => (
+                                    <tr key={ind.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            {ind.first_name} {ind.last_name}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {ind.email || "N/A"}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {ind.church_name ? ind.church_name.replace(/_/g, " ") : "N/A"}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                ind.active_to_emails 
+                                                    ? "bg-green-100 text-green-800" 
+                                                    : "bg-red-100 text-red-800"
+                                            }`}>
+                                                {ind.active_to_emails ? "Active" : "Inactive"}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                            <div className="flex flex-wrap gap-1">
+                                                {ind.craft_ideas && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Craft Ideas</span>
+                                                )}
+                                                {ind.packing_party_ideas && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Packing Party</span>
+                                                )}
+                                                {ind.fundraising_ideas && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Fundraising</span>
+                                                )}
+                                                {ind.getting_more_people_involved && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">More People</span>
+                                                )}
+                                                {ind.presentation_at_church_group && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Presentation</span>
+                                                )}
+                                                {ind.resources && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Resources</span>
+                                                )}
+                                                {ind.other && ind.other_description && (
+                                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs" title={ind.other_description}>
+                                                        Other: {ind.other_description.length > 20 ? ind.other_description.substring(0, 20) + "..." : ind.other_description}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+

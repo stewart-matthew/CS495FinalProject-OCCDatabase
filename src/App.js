@@ -13,6 +13,8 @@ import AddMember from "./pages/addMember";
 import EditMember from "./pages/editMember";
 import AddChurch from "./pages/addChurch";
 import EditChurch from "./pages/editChurch";
+import TeamMember from "./pages/teamMember";
+import Individuals from "./pages/individuals";
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/editProfile" element={<EditProfile />} />
                   <Route path="/team-members" element={<TeamMembers />} />
+                  <Route path="/team-member/:id" element={<TeamMember />} />
+                  <Route path="/individuals" element={<Individuals />} />
 
                   {/* Add/Edit routes */}
                   <Route path="/add-member" element={<AddMember />} />

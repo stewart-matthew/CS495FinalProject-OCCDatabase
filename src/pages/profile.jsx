@@ -21,6 +21,10 @@ export default function Profile() {
   const [team, setTeam] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState(null);
+  const [myNotes, setMyNotes] = useState([]);
+  const [myChurches, setMyChurches] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [churchesLoading, setChurchesLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -62,6 +66,56 @@ export default function Profile() {
 
     getUserAndData();
   }, [navigate]);
+
+  // Fetch notes added by current user
+  useEffect(() => {
+    async function getMyNotes() {
+      if (!memberData?.id) return;
+      
+      setNotesLoading(true);
+      const { data: notesData, error } = await supabase
+        .from("notes")
+        .select(`
+          *,
+          church!notes_church_fkey(church_name)
+        `)
+        .eq("added_by_team_member_id", memberData.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching notes:", error);
+      } else {
+        setMyNotes(notesData || []);
+      }
+      setNotesLoading(false);
+    }
+    getMyNotes();
+  }, [memberData]);
+
+  // Fetch churches where user is the lead
+  useEffect(() => {
+    async function getMyChurches() {
+      if (!memberData?.id) return;
+      
+      setChurchesLoading(true);
+      const currentYear = 2025; // You can make this dynamic if needed
+      const relationsField = `relations_member_${currentYear}`;
+      
+      const { data: churchesData, error } = await supabase
+        .from("church")
+        .select("id, church_name, physical_city, physical_state")
+        .eq(relationsField, memberData.id)
+        .order("church_name", { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching churches:", error);
+      } else {
+        setMyChurches(churchesData || []);
+      }
+      setChurchesLoading(false);
+    }
+    getMyChurches();
+  }, [memberData]);
 
   const fetchMyTeam = async () => {
     if (!memberData) return;
@@ -247,11 +301,92 @@ export default function Profile() {
                     <div className="text-sm text-gray-600">{m.email}</div>
                   </div>
                   <Link
-                    to={`/member/${m.id}`}
+                    to={`/team-member/${m.id}`}
                     className="text-blue-600 hover:underline"
                   >
                     View details
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* MY NOTES SECTION */}
+      {activeTab === "profile" && memberData && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">My Notes</h2>
+          {notesLoading ? (
+            <p>Loading notes...</p>
+          ) : myNotes.length === 0 ? (
+            <p className="text-gray-600">You haven't added any notes yet.</p>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {myNotes.map((note) => {
+                const noteDate = new Date(note.created_at).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const churchName = note.church?.church_name 
+                  ? note.church.church_name.replace(/_/g, " ")
+                  : "Unknown Church";
+                
+                return (
+                  <div key={note.id} className="bg-gray-50 p-3 rounded border">
+                    <p className="text-sm text-gray-600 mb-1">
+                      <strong>Church:</strong>{" "}
+                      {note.church_id && note.church?.church_name ? (
+                        <button
+                          onClick={() => navigate(`/church/${encodeURIComponent(note.church.church_name)}`)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {churchName}
+                        </button>
+                      ) : (
+                        churchName
+                      )}
+                      {" - "}
+                      {noteDate}
+                    </p>
+                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MY CHURCHES SECTION */}
+      {activeTab === "profile" && memberData && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">My Churches</h2>
+          {churchesLoading ? (
+            <p>Loading churches...</p>
+          ) : myChurches.length === 0 ? (
+            <p className="text-gray-600">You are not the lead for any churches.</p>
+          ) : (
+            <ul className="divide-y">
+              {myChurches.map((church) => (
+                <li key={church.id} className="py-2 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">
+                      {church.church_name?.replace(/_/g, " ") || "Unknown"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {church.physical_city}, {church.physical_state}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    View Church
+                  </button>
                 </li>
               ))}
             </ul>

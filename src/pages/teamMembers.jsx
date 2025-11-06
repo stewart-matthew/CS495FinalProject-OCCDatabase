@@ -38,8 +38,6 @@ function PrivateBucketImage({ filePath, className }) {
 export default function TeamMembers() {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expanded, setExpanded] = useState({});
-    const [churches, setChurches] = useState({});
     const [copyStatus, setCopyStatus] = useState(null);
     const [downloadStatus, setDownloadStatus] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
@@ -155,36 +153,6 @@ export default function TeamMembers() {
         setDownloadStatus("success");
     };
 
-    const toggleInfo = (id) => {
-        setExpanded((prev) => ({
-            ...prev,
-            [id]: prev[id] === "info" ? null : "info",
-        }));
-    };
-
-    const toggleChurch = async (member) => {
-        if (!churches[member.id]) {
-            if (!member.church_affiliation_name) {
-                setChurches((prev) => ({ ...prev, [member.id]: { church_name: "N/A" } }));
-            } else {
-                const { data, error } = await supabase
-                    .from("church")
-                    .select("church_name, physical_city, physical_state, phone_number, physical_zip")
-                    .eq("church_name", member.church_affiliation_name)
-                    .single();
-
-                setChurches((prev) => ({
-                    ...prev,
-                    [member.id]: error ? { church_name: "N/A" } : data,
-                }));
-            }
-        }
-
-        setExpanded((prev) => ({
-            ...prev,
-            [member.id]: prev[member.id] === "church" ? null : "church",
-        }));
-    };
 
     if (loading) return <p className="text-center mt-10">Loading team members...</p>;
 
@@ -240,8 +208,8 @@ export default function TeamMembers() {
 
             {/* Active Members */}
             {activeMembers.map((member) => {
-                const basicInfo = (
-                    <>
+                return (
+                    <div key={member.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
                         <h2 className="text-xl font-bold">
                             {member.first_name} {member.last_name}
                         </h2>
@@ -254,60 +222,13 @@ export default function TeamMembers() {
                                 className="w-1/2 mx-auto rounded mt-2"
                             />
                         )}
-                    </>
-                );
 
-                const moreInfo = (
-                    <div className="mt-4 text-gray-700 space-y-1">
-                        <p><strong>Alt Phone:</strong> {member.alt_phone_number || "N/A"}</p>
-                        <p><strong>Home Address:</strong> {member.home_address || "N/A"}</p>
-                        <p><strong>City:</strong> {member.home_city || "N/A"}</p>
-                        <p><strong>State:</strong> {member.home_state || "N/A"}</p>
-                        <p><strong>Zip:</strong> {member.home_zip || "N/A"}</p>
-                        <p><strong>County:</strong> {member.home_county || "N/A"}</p>
-                        <p><strong>Birth Date:</strong> {member.date_of_birth || "N/A"}</p>
-                        <p><strong>Shirt Size:</strong> {member.shirt_size || "N/A"}</p>
-                        <p><strong>Church Affiliation:</strong> {member.church_affiliation_name || "N/A"}</p>
-                        <p><strong>Active:</strong> {member.active ? "Yes" : "No"}</p>
-                        <p><strong>Member Notes:</strong> {member.member_notes || "N/A"}</p>
-                    </div>
-                );
-
-                return (
-                    <div key={member.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
-                        {basicInfo}
-
-                        <div className="flex space-x-2 mt-4">
-                            <button
-                                onClick={() => toggleInfo(member.id)}
-                                className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                            >
-                                {expanded[member.id] === "info" ? "Less Info" : "More Info"}
-                            </button>
-
-                            <button
-                                onClick={() => toggleChurch(member)}
-                                className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                            >
-                                {expanded[member.id] === "church" ? "Hide Church" : "My Church"}
-                            </button>
-                        </div>
-
-                        {expanded[member.id] === "info" && moreInfo}
-
-                        {expanded[member.id] === "church" && churches[member.id] && (
-                            <div className="mt-3 bg-gray-100 p-3 rounded">
-                                <h3 className="font-semibold mb-2">Affiliated Church:</h3>
-                                <p>
-                                    <strong>Name:</strong>{" "}
-                                    {churches[member.id].church_name?.replace(/_/g, " ") || "N/A"}
-                                </p>
-                                <p><strong>City:</strong> {churches[member.id].physical_city || "N/A"}</p>
-                                <p><strong>State:</strong> {churches[member.id].physical_state || "N/A"}</p>
-                                <p><strong>Zip:</strong> {churches[member.id].physical_zip || "N/A"}</p>
-                                <p><strong>Phone:</strong> {churches[member.id].phone_number || "N/A"}</p>
-                            </div>
-                        )}
+                        <button
+                            onClick={() => navigate(`/team-member/${member.id}`)}
+                            className="mt-4 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                        >
+                            View Profile
+                        </button>
 
                         {isAdmin && (
                             <button
@@ -328,8 +249,8 @@ export default function TeamMembers() {
                         <h2 className="text-2xl font-bold">Former Members</h2>
                     </div>
                     {formerMembers.map((member) => {
-                        const basicInfo = (
-                            <>
+                        return (
+                            <div key={member.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
                                 <h2 className="text-xl font-bold">
                                     {member.first_name} {member.last_name}
                                 </h2>
@@ -342,60 +263,13 @@ export default function TeamMembers() {
                                         className="w-1/2 mx-auto rounded mt-2"
                                     />
                                 )}
-                            </>
-                        );
 
-                        const moreInfo = (
-                            <div className="mt-4 text-gray-700 space-y-1">
-                                <p><strong>Alt Phone:</strong> {member.alt_phone_number || "N/A"}</p>
-                                <p><strong>Home Address:</strong> {member.home_address || "N/A"}</p>
-                                <p><strong>City:</strong> {member.home_city || "N/A"}</p>
-                                <p><strong>State:</strong> {member.home_state || "N/A"}</p>
-                                <p><strong>Zip:</strong> {member.home_zip || "N/A"}</p>
-                                <p><strong>County:</strong> {member.home_county || "N/A"}</p>
-                                <p><strong>Birth Date:</strong> {member.date_of_birth || "N/A"}</p>
-                                <p><strong>Shirt Size:</strong> {member.shirt_size || "N/A"}</p>
-                                <p><strong>Church Affiliation:</strong> {member.church_affiliation_name || "N/A"}</p>
-                                <p><strong>Active:</strong> {member.active ? "Yes" : "No"}</p>
-                                <p><strong>Member Notes:</strong> {member.member_notes || "N/A"}</p>
-                            </div>
-                        );
-
-                        return (
-                            <div key={member.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
-                                {basicInfo}
-
-                                <div className="flex space-x-2 mt-4">
-                                    <button
-                                        onClick={() => toggleInfo(member.id)}
-                                        className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                                    >
-                                        {expanded[member.id] === "info" ? "Less Info" : "More Info"}
-                                    </button>
-
-                                    <button
-                                        onClick={() => toggleChurch(member)}
-                                        className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                                    >
-                                        {expanded[member.id] === "church" ? "Hide Church" : "My Church"}
-                                    </button>
-                                </div>
-
-                                {expanded[member.id] === "info" && moreInfo}
-
-                                {expanded[member.id] === "church" && churches[member.id] && (
-                                    <div className="mt-3 bg-gray-100 p-3 rounded">
-                                        <h3 className="font-semibold mb-2">Affiliated Church:</h3>
-                                        <p>
-                                            <strong>Name:</strong>{" "}
-                                            {churches[member.id].church_name?.replace(/_/g, " ") || "N/A"}
-                                        </p>
-                                        <p><strong>City:</strong> {churches[member.id].physical_city || "N/A"}</p>
-                                        <p><strong>State:</strong> {churches[member.id].physical_state || "N/A"}</p>
-                                        <p><strong>Zip:</strong> {churches[member.id].physical_zip || "N/A"}</p>
-                                        <p><strong>Phone:</strong> {churches[member.id].phone_number || "N/A"}</p>
-                                    </div>
-                                )}
+                                <button
+                                    onClick={() => navigate(`/team-member/${member.id}`)}
+                                    className="mt-4 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                                >
+                                    View Profile
+                                </button>
 
                                 <button
                                     onClick={() => navigate(`/edit-member/${member.id}`)}

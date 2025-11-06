@@ -52,7 +52,6 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
             setUpdates(initialUpdates);
         }
     }, [isOpen, churches, shoeboxFieldName]);
-
     const handleChange = (churchName, value) => {
         const numericValue = value === '' ? null : parseInt(value, 10);
         setUpdates(prev => ({
@@ -149,12 +148,12 @@ export default function Home() {
         shoebox_2025: "",
         sortBy: "",
         selectedCounties: [],
+        selectedYear: 2025,
     });
     const navigate = useNavigate();
 
-    const SHOEBOX_YEAR = 2025;
-    const shoeboxFieldName = `shoebox_${SHOEBOX_YEAR}`;
-    const modalShoeboxField = `shoebox_${SHOEBOX_YEAR}`;
+    const shoeboxFieldName = `shoebox_${filters.selectedYear}`;
+    const modalShoeboxField = `shoebox_${filters.selectedYear}`;
 
     // Fetch churches with optional filters
     async function getChurches(filterValues = filters) {
@@ -166,7 +165,8 @@ export default function Home() {
             query = query.ilike("church_name", `%${searchValue}%`);
         }
         if (filterValues.zipcode) query = query.eq("physical_zip", filterValues.zipcode);
-        if (filterValues.shoebox_2025) query = query.gte("shoebox_2025", filterValues.shoebox_2025);
+        const shoeboxField = `shoebox_${filterValues.selectedYear}`;
+        if (filterValues.shoebox_2025) query = query.gte(shoeboxField, filterValues.shoebox_2025);
         if (filterValues.selectedCounties.length > 0) query = query.in("physical_county", filterValues.selectedCounties);
 
         const { data, error } = await query;
@@ -175,8 +175,9 @@ export default function Home() {
             setChurches([]);
         } else {
             let sortedData = [...data];
+            const shoeboxField = `shoebox_${filterValues.selectedYear}`;
             if (filterValues.sortBy === "shoebox_desc") {
-                sortedData.sort((a, b) => (b.shoebox_2025 || 0) - (a.shoebox_2025 || 0));
+                sortedData.sort((a, b) => (b[shoeboxField] || 0) - (a[shoeboxField] || 0));
             } else if (filterValues.sortBy === "name_asc") {
                 sortedData.sort((a, b) => a.church_name.localeCompare(b.church_name));
             } else if (filterValues.sortBy === "name_desc") {
@@ -199,6 +200,7 @@ export default function Home() {
 
     useEffect(() => {
         getChurches();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (loading) return <p>Loading...</p>;
@@ -220,7 +222,7 @@ export default function Home() {
                     className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                     onClick={() => setIsModalOpen(true)}
                 >
-                    Update  {SHOEBOX_YEAR} Shoebox Counts
+                    Update  {filters.selectedYear} Shoebox Counts
                 </button>
 
                 {/* Add Church Button */}
@@ -273,7 +275,7 @@ export default function Home() {
                     />
                     <input
                         type="number"
-                        placeholder="Minimum shoebox 2025"
+                        placeholder={`Minimum shoebox ${filters.selectedYear}`}
                         value={filters.shoebox_2025}
                         onChange={(e) => setFilters({ ...filters, shoebox_2025: e.target.value })}
                         className="border p-2 rounded w-full md:w-1/3"
@@ -291,7 +293,7 @@ export default function Home() {
                     <button
                         className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
                         onClick={() => {
-                            const clearedFilters = { churchName: "", zipcode: "", shoebox_2025: "", sortBy: "", selectedCounties: [] };
+                            const clearedFilters = { churchName: "", zipcode: "", shoebox_2025: "", sortBy: "", selectedCounties: [], selectedYear: 2025 };
                             setFilters(clearedFilters);
                             getChurches(clearedFilters);
                         }}
@@ -299,24 +301,43 @@ export default function Home() {
                         Clear All Filters
                     </button>
 
-                    {/* Sort Dropdown */}
-                    <div className="ml-auto">
-                        <label className="mr-2 font-medium">Sort by:</label>
-                        <select
-                            value={filters.sortBy || ""}
-                            onChange={(e) => {
-                                const sortBy = e.target.value;
-                                const newFilters = { ...filters, sortBy };
-                                setFilters(newFilters);
-                                getChurches(newFilters);
-                            }}
-                            className="border p-2 rounded"
-                        >
-                            <option value="">Select...</option>
-                            <option value="shoebox_desc">Shoebox Count (High → Low)</option>
-                            <option value="name_asc">Name (A → Z)</option>
-                            <option value="name_desc">Name (Z → A)</option>
-                        </select>
+                    {/* Year and Sort Dropdowns */}
+                    <div className="ml-auto flex gap-4 items-center">
+                        <div>
+                            <label className="mr-2 font-medium">Year:</label>
+                            <select
+                                value={filters.selectedYear}
+                                onChange={(e) => {
+                                    const selectedYear = parseInt(e.target.value);
+                                    const newFilters = { ...filters, selectedYear };
+                                    setFilters(newFilters);
+                                    getChurches(newFilters);
+                                }}
+                                className="border p-2 rounded"
+                            >
+                                <option value="2023">2023</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="mr-2 font-medium">Sort by:</label>
+                            <select
+                                value={filters.sortBy || ""}
+                                onChange={(e) => {
+                                    const sortBy = e.target.value;
+                                    const newFilters = { ...filters, sortBy };
+                                    setFilters(newFilters);
+                                    getChurches(newFilters);
+                                }}
+                                className="border p-2 rounded"
+                            >
+                                <option value="">Select...</option>
+                                <option value="shoebox_desc">Shoebox Count (High → Low)</option>
+                                <option value="name_asc">Name (A → Z)</option>
+                                <option value="name_desc">Name (Z → A)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -328,7 +349,7 @@ export default function Home() {
                         <div>
                             <h2 className="text-xl font-bold mb-2">{church.church_name.replace(/_/g, " ")}</h2>
                             <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>
-                            {church.shoebox_2025 !== undefined && <p className="text-gray-700"><strong>Shoebox 2025:</strong> {church.shoebox_2025}</p>}
+                            {church[shoeboxFieldName] !== undefined && <p className="text-gray-700"><strong>Shoebox {filters.selectedYear}:</strong> {church[shoeboxFieldName]}</p>}
                             {church.physical_zip && <p className="text-gray-700"><strong>Zip Code:</strong> {church.physical_zip}</p>}
                         </div>
                         {church.photo_url && (

@@ -5,7 +5,6 @@ import logo from "../assets/OCClogo.png";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
-  const [member, setMember] = useState(null); // store team_members info
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -14,17 +13,7 @@ export default function Navbar() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      if (user) {
-        // fetch matching team_members row
-        const { data } = await supabase
-          .from("team_members")
-          .select("*")
-          .eq("email", user.email)
-          .single();
-        setMember(data);
-      } else {
-        setMember(null);
-      }
+      // Member data can be fetched here if needed in the future
     };
     getUser();
 
@@ -32,16 +21,7 @@ export default function Navbar() {
       const currentUser = session?.user || null;
       setUser(currentUser);
 
-      if (currentUser) {
-        supabase
-          .from("team_members")
-          .select("*")
-          .eq("email", currentUser.email)
-          .single()
-          .then(({ data }) => setMember(data));
-      } else {
-        setMember(null);
-      }
+      // Member data can be fetched here if needed in the future
     });
 
     return () => {
@@ -49,12 +29,7 @@ export default function Navbar() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setMember(null);
-    navigate("/login");
-  };
+  // handleLogout can be added here if needed in the future
 
   const hideLinks = location.pathname === "/login";
 
@@ -75,6 +50,7 @@ export default function Navbar() {
               <Link to="/about" className="hover:text-gray-300">About</Link>
               <Link to="/profile" className="hover:text-gray-300">Profile</Link>
               <Link to="/team-members" className="hover:text-gray-300">Team Members</Link>
+              <Link to="/individuals" className="hover:text-gray-300">Individuals</Link>
             </>
           )}
         </div>
