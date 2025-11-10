@@ -1,6 +1,5 @@
 # Stage 1: Build the React app
 FROM node:18-alpine AS build
-
 WORKDIR /app
 
 # Copy package files and install dependencies
@@ -10,7 +9,15 @@ RUN npm install
 # Copy the rest of the source code
 COPY . .
 
-# Build the React app
+# Accept build arguments from Render
+ARG REACT_APP_SUPABASE_URL
+ARG REACT_APP_SUPABASE_ANON_KEY
+
+# Set them as environment variables for the build
+ENV REACT_APP_SUPABASE_URL=$REACT_APP_SUPABASE_URL
+ENV REACT_APP_SUPABASE_ANON_KEY=$REACT_APP_SUPABASE_ANON_KEY
+
+# Build the React app (now with env vars available)
 RUN npm run build
 
 # Stage 2: Serve the app with Nginx
