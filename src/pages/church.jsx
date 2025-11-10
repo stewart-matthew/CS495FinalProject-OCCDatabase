@@ -74,28 +74,17 @@ export default function ChurchPage() {
     getNotes();
   }, [church]);
 
-  const refreshIndividuals = async () => {
-    setIndividualsLoading(true);
-    const { data, error } = await supabase
-      .from("individuals")
-      .select("*")
-      .eq("church_name", churchName);
-    if (error) console.error(error);
-    else setIndividuals(data);
-    setIndividualsLoading(false);
-  };
-
   useEffect(() => {
-    refreshIndividuals();
-  }, [churchName]);
-
-  // Refresh individuals when page becomes visible (e.g., after adding an individual)
-  useEffect(() => {
-    const handleFocus = () => {
-      refreshIndividuals();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    async function getIndividuals() {
+      const { data, error } = await supabase
+        .from("individuals")
+        .select("*")
+        .eq("church_name", churchName);
+      if (error) console.error(error);
+      else setIndividuals(data);
+      setIndividualsLoading(false);
+    }
+    getIndividuals();
   }, [churchName]);
 
   const shoeboxFieldName = `shoebox_${SHOEBOX_YEAR}`;
@@ -229,27 +218,11 @@ export default function ChurchPage() {
         </button>
       </div>
 
-      <div className="flex justify-between items-center mt-8 mb-4">
-        <h2 className="text-2xl font-semibold">Individuals</h2>
-        <button
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          onClick={() => navigate(`/add-individual/${encodeURIComponent(churchName)}`)}
-        >
-          Add Individual
-        </button>
-      </div>
+      <h2 className="text-2xl font-semibold mt-8 mb-4">Individuals</h2>
       {individualsLoading ? (
         <p>Loading individuals...</p>
       ) : individuals.length === 0 ? (
-        <div>
-          <p className="mb-4">No individuals found for this church.</p>
-          <button
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            onClick={() => navigate(`/add-individual/${encodeURIComponent(churchName)}`)}
-          >
-            Add Individual
-          </button>
-        </div>
+        <p>No individuals found for this church.</p>
       ) : (
         <table className="min-w-full border-collapse border border-gray-300">
           <thead>

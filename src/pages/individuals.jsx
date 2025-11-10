@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router-dom";
 
 export default function Individuals() {
     const [individuals, setIndividuals] = useState([]);
     const [filteredIndividuals, setFilteredIndividuals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [copyStatus, setCopyStatus] = useState(null);
-    const navigate = useNavigate();
     
     // Filter states
     const [filters, setFilters] = useState({
-        personName: "",
         churchName: "",
         activeToEmails: null, // null = all, true = active, false = inactive
         craftIdeas: false,
@@ -47,16 +44,6 @@ export default function Individuals() {
     // Apply filters and sorting
     useEffect(() => {
         let filtered = [...individuals];
-
-        // Filter by person name
-        if (filters.personName) {
-            const searchValue = filters.personName.toLowerCase();
-            filtered = filtered.filter(ind => 
-                `${ind.first_name} ${ind.last_name}`.toLowerCase().includes(searchValue) ||
-                ind.first_name.toLowerCase().includes(searchValue) ||
-                ind.last_name.toLowerCase().includes(searchValue)
-            );
-        }
 
         // Filter by church name
         if (filters.churchName) {
@@ -143,69 +130,17 @@ export default function Individuals() {
         }
     };
 
-    const toggleActiveStatus = async (individual) => {
-        const newStatus = !individual.active_to_emails;
-        
-        const { error } = await supabase
-            .from("individuals")
-            .update({ active_to_emails: newStatus })
-            .eq("id", individual.id);
-
-        if (error) {
-            console.error("Error updating individual status:", error);
-            alert("Failed to update status. Please try again.");
-        } else {
-            // Update the local state
-            setIndividuals(prev => 
-                prev.map(ind => 
-                    ind.id === individual.id 
-                        ? { ...ind, active_to_emails: newStatus }
-                        : ind
-                )
-            );
-        }
-    };
-
-    const handleSortByColumn = (column) => {
-        if (column === "name") {
-            // Toggle between name_asc and name_desc
-            setSortBy(sortBy === "name_asc" ? "name_desc" : "name_asc");
-        } else if (column === "church") {
-            // Toggle between church_asc and church_desc
-            setSortBy(sortBy === "church_asc" ? "church_desc" : "church_asc");
-        }
-    };
-
     if (loading) return <p className="text-center mt-10">Loading individuals...</p>;
 
     return (
         <div className="max-w-7xl mx-auto mt-10">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">Individuals</h1>
-                <button
-                    onClick={() => navigate("/add-individual")}
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                    Add Individual
-                </button>
-            </div>
+            <h1 className="text-3xl font-bold mb-6">Individuals</h1>
 
             {/* Filters Section */}
             <div className="bg-gray-100 p-4 rounded-lg mb-6">
                 <h2 className="text-lg font-semibold mb-4">Filters</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Person Name</label>
-                        <input
-                            type="text"
-                            placeholder="Search by name..."
-                            value={filters.personName}
-                            onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-                            className="w-full border rounded-md p-2"
-                        />
-                    </div>
-
                     <div>
                         <label className="block text-sm font-medium mb-1">Church Name</label>
                         <input
@@ -330,7 +265,6 @@ export default function Individuals() {
                 <button
                     onClick={() => {
                         setFilters({
-                            personName: "",
                             churchName: "",
                             activeToEmails: null,
                             craftIdeas: false,
@@ -362,19 +296,9 @@ export default function Individuals() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th 
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                    onClick={() => handleSortByColumn("name")}
-                                >
-                                    Name {sortBy === "name_asc" ? "↑" : sortBy === "name_desc" ? "↓" : ""}
-                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th 
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                    onClick={() => handleSortByColumn("church")}
-                                >
-                                    Church {sortBy === "church_asc" ? "↑" : sortBy === "church_desc" ? "↓" : ""}
-                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Church</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active to Emails</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resources Requested</th>
                             </tr>
@@ -399,26 +323,13 @@ export default function Individuals() {
                                             {ind.church_name ? ind.church_name.replace(/_/g, " ") : "N/A"}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    ind.active_to_emails 
-                                                        ? "bg-green-100 text-green-800" 
-                                                        : "bg-red-100 text-red-800"
-                                                }`}>
-                                                    {ind.active_to_emails ? "Active" : "Inactive"}
-                                                </span>
-                                                <button
-                                                    onClick={() => toggleActiveStatus(ind)}
-                                                    className={`px-2 py-1 text-xs rounded hover:bg-opacity-80 ${
-                                                        ind.active_to_emails
-                                                            ? "bg-red-500 text-white hover:bg-red-600"
-                                                            : "bg-green-500 text-white hover:bg-green-600"
-                                                    }`}
-                                                    title={ind.active_to_emails ? "Mark as Inactive" : "Mark as Active"}
-                                                >
-                                                    {ind.active_to_emails ? "Deactivate" : "Activate"}
-                                                </button>
-                                            </div>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                ind.active_to_emails 
+                                                    ? "bg-green-100 text-green-800" 
+                                                    : "bg-red-100 text-red-800"
+                                            }`}>
+                                                {ind.active_to_emails ? "Active" : "Inactive"}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
                                             <div className="flex flex-wrap gap-1">
