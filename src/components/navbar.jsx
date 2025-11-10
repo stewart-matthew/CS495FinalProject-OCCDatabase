@@ -31,7 +31,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">
       <div className="flex items-center">
         <img src={logo} alt="App Logo" className="h-10 w-auto mr-3" />
-        <span className="text-2xl font-bold">Operation Christmas Child</span>
+        <span className="text-2xl font-bold">Operation Christmas Child - West Alabama</span>
       </div>
 
       {!hideLinks && (
@@ -41,10 +41,10 @@ export default function Navbar() {
           ) : (
             <>
               <Link to="/" className="hover:text-gray-300">Home</Link>
-              <Link to="/about" className="hover:text-gray-300">About</Link>
-              <Link to="/profile" className="hover:text-gray-300">Profile</Link>
               <Link to="/team-members" className="hover:text-gray-300">Team Members</Link>
               <Link to="/individuals" className="hover:text-gray-300">Individuals</Link>
+              <Link to="/about" className="hover:text-gray-300">About</Link>
+              <Link to="/profile" className="hover:text-gray-300">Profile</Link>
             </>
           )}
         </div>
