@@ -12,16 +12,12 @@ export default function Navbar() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-
-      // Member data can be fetched here if needed in the future
     };
     getUser();
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user || null;
       setUser(currentUser);
-
-      // Member data can be fetched here if needed in the future
     });
 
     return () => {
@@ -29,12 +25,10 @@ export default function Navbar() {
     };
   }, []);
 
-  // handleLogout can be added here if needed in the future
-
   const hideLinks = location.pathname === "/login";
 
   return (
-    <nav className="flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">
+    <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">
       <div className="flex items-center">
         <img src={logo} alt="App Logo" className="h-10 w-auto mr-3" />
         <span className="text-2xl font-bold">Operation Christmas Child</span>

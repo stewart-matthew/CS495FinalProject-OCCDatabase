@@ -19,42 +19,48 @@ import Individuals from "./pages/individuals";
 function App() {
   return (
     <Router>
+      {/* min-h-screen ensures background color spans the viewport */}
       <div className="min-h-screen bg-gray-100">
+
+        {/* Navbar is fixed, so we need top padding for content */}
         <Navbar />
 
-        <Routes>
-          {/* Public route */}
-          <Route path="/login" element={<Login />} />
+        {/* Add top padding equal to navbar height */}
+        <div className="pt-20">
+          <Routes>
+            {/* Public route */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/church/:churchName" element={<ChurchPage />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/editProfile" element={<EditProfile />} />
-                  <Route path="/team-members" element={<TeamMembers />} />
-                  <Route path="/team-member/:id" element={<TeamMember />} />
-                  <Route path="/individuals" element={<Individuals />} />
+            {/* Protected routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/home" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/church/:churchName" element={<ChurchPage />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/editProfile" element={<EditProfile />} />
+                    <Route path="/team-members" element={<TeamMembers />} />
+                    <Route path="/team-member/:id" element={<TeamMember />} />
+                    <Route path="/individuals" element={<Individuals />} />
 
-                  {/* Add/Edit routes */}
-                  <Route path="/add-member" element={<AddMember />} />
-                  <Route path="/edit-member/:id" element={<EditMember />} />
-                  <Route path="/add-church" element={<AddChurch />} />
-                  <Route path="/edit-church/:churchName" element={<EditChurch />} />
+                    {/* Add/Edit routes */}
+                    <Route path="/add-member" element={<AddMember />} />
+                    <Route path="/edit-member/:id" element={<EditMember />} />
+                    <Route path="/add-church" element={<AddChurch />} />
+                    <Route path="/edit-church/:churchName" element={<EditChurch />} />
 
-                  {/* Redirect unknown paths */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+                    {/* Redirect unknown paths */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
       </div>
     </Router>
   );
