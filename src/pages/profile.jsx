@@ -3,398 +3,451 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
 
+// Add the PrivateBucketImage component for profile photos
+function PrivateBucketImage({ filePath, className }) {
+    const [signedUrl, setSignedUrl] = useState(null);
+
+    useEffect(() => {
+        const getSignedUrl = async () => {
+            if (!filePath) return;
+
+            // If it's already a full URL, use it
+            if (filePath.startsWith('http')) {
+                setSignedUrl(filePath);
+                return;
+            }
+
+            // signed URL for Team Images bucket
+            const { data } = await supabase.storage
+                .from('Team Images')
+                .createSignedUrl(filePath, 3600);
+
+            if (data) {
+                setSignedUrl(data.signedUrl);
+            }
+        };
+
+        getSignedUrl();
+    }, [filePath]);
+
+    if (!signedUrl) {
+        return <div className={`bg-gray-200 flex items-center justify-center ${className}`}>Loading...</div>;
+    }
+
+    return <img src={signedUrl} alt="Profile" className={className} />;
+}
+
 const MANAGED_BY = {
-  "Area Coordinator": "ALL",
-  "Church Relations Coordinator": ["Church Relations Team Member"],
-  "Logistics Coordinator": ["Central Dropoff Team Leader", "Dropoff Team Leader"],
-  "Prayer Team Coordinator": ["Prayer Team Member"],
-  "Community Relations Coordinator": ["Community Relations Team Member"],
-  "Student Relations Coordinator": ["Student Relations Team Member"],
-  "Media Support Team Member": [], 
+    "Area Coordinator": "ALL",
+    "Church Relations Coordinator": ["Church Relations Team Member"],
+    "Logistics Coordinator": ["Central Dropoff Team Leader", "Dropoff Team Leader"],
+    "Prayer Team Coordinator": ["Prayer Team Member"],
+    "Community Relations Coordinator": ["Community Relations Team Member"],
+    "Student Relations Coordinator": ["Student Relations Team Member"],
+    "Media Support Team Member": [],
 };
 
 export default function Profile() {
-  const [user, setUser] = useState(null);
-  const [memberData, setMemberData] = useState(null);
-  const [positions, setPositions] = useState([]); // array
-  const [activeTab, setActiveTab] = useState("profile"); // "profile" | "myTeam"
-  const [team, setTeam] = useState([]);
-  const [teamLoading, setTeamLoading] = useState(false);
-  const [teamError, setTeamError] = useState(null);
-  const [myNotes, setMyNotes] = useState([]);
-  const [myChurches, setMyChurches] = useState([]);
-  const [notesLoading, setNotesLoading] = useState(false);
-  const [churchesLoading, setChurchesLoading] = useState(false);
+    const [user, setUser] = useState(null);
+    const [memberData, setMemberData] = useState(null);
+    const [positions, setPositions] = useState([]); // array
+    const [activeTab, setActiveTab] = useState("profile"); // "profile" | "myTeam"
+    const [team, setTeam] = useState([]);
+    const [teamLoading, setTeamLoading] = useState(false);
+    const [teamError, setTeamError] = useState(null);
+    const [myNotes, setMyNotes] = useState([]);
+    const [myChurches, setMyChurches] = useState([]);
+    const [notesLoading, setNotesLoading] = useState(false);
+    const [churchesLoading, setChurchesLoading] = useState(false);
 
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const getUserAndData = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        navigate("/login");
-        return;
-      }
-      setUser(authUser);
+    useEffect(() => {
+        const getUserAndData = async () => {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) {
+                navigate("/login");
+                return;
+            }
+            setUser(authUser);
 
-      const { data: member, error: memberError } = await supabase
-        .from("team_members")
-        .select("*")
-        .eq("email", authUser.email)
-        .maybeSingle();
+            const { data: member, error: memberError } = await supabase
+                .from("team_members")
+                .select("*")
+                .eq("email", authUser.email)
+                .maybeSingle();
 
-      if (memberError) {
-        console.error(memberError);
-      }
+            if (memberError) {
+                console.error(memberError);
+            }
 
-      setMemberData(member || null);
+            setMemberData(member || null);
 
-      if (member?.id) {
-        const { data: posRows, error: posError } = await supabase
-          .from("member_positions")
-          .select("position")
-          .eq("member_id", member.id);
+            if (member?.id) {
+                const { data: posRows, error: posError } = await supabase
+                    .from("member_positions")
+                    .select("position")
+                    .eq("member_id", member.id);
 
-        if (!posError && posRows) {
-          setPositions(posRows.map(r => r.position));
-        }
-      } else {
-        setPositions([]); // no member found → clear positions array
-      }
+                if (!posError && posRows) {
+                    setPositions(posRows.map(r => r.position));
+                }
+            } else {
+                setPositions([]); // no member found → clear positions array
+            }
 
-    };
+        };
 
-    getUserAndData();
-  }, [navigate]);
+        getUserAndData();
+    }, [navigate]);
 
-  // Fetch notes added by current user
-  useEffect(() => {
-    async function getMyNotes() {
-      if (!memberData?.id) return;
-      
-      setNotesLoading(true);
-      const { data: notesData, error } = await supabase
-        .from("notes")
-        .select(`
+    // Fetch notes added by current user
+    useEffect(() => {
+        async function getMyNotes() {
+            if (!memberData?.id) return;
+
+            setNotesLoading(true);
+            const { data: notesData, error } = await supabase
+                .from("notes")
+                .select(`
           *,
           church!notes_church_fkey(church_name)
         `)
-        .eq("added_by_team_member_id", memberData.id)
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching notes:", error);
-      } else {
-        setMyNotes(notesData || []);
-      }
-      setNotesLoading(false);
-    }
-    getMyNotes();
-  }, [memberData]);
+                .eq("added_by_team_member_id", memberData.id)
+                .order("created_at", { ascending: false });
 
-  // Fetch churches where user is the lead
-  useEffect(() => {
-    async function getMyChurches() {
-      if (!memberData?.id) return;
-      
-      setChurchesLoading(true);
-      const currentYear = 2025; // You can make this dynamic if needed
-      const relationsField = `relations_member_${currentYear}`;
-      
-      const { data: churchesData, error } = await supabase
-        .from("church")
-        .select("id, church_name, physical_city, physical_state")
-        .eq(relationsField, memberData.id)
-        .order("church_name", { ascending: true });
-      
-      if (error) {
-        console.error("Error fetching churches:", error);
-      } else {
-        setMyChurches(churchesData || []);
-      }
-      setChurchesLoading(false);
-    }
-    getMyChurches();
-  }, [memberData]);
-
-  const fetchMyTeam = async () => {
-    if (!memberData) return;
-    setActiveTab("myTeam");
-    setTeamLoading(true);
-    setTeamError(null);
-
-    try {
-      const scopes = positions.flatMap((p) => {
-        const m = MANAGED_BY[p];
-        return m ? [m] : [];
-      });
-
-      if (scopes.length === 0) {
-        setTeam([]);
-        return;
-      }
-
-      if (scopes.includes("ALL")) {
-        const { data, error } = await supabase
-          .from("team_members")
-          .select("id, first_name, last_name, email")
-          .order("last_name", { ascending: true });
-        if (error) throw error;
-
-        const members = data || [];
-
-        // fetch and attach their positions
-        const memberIds = members.map((m) => m.id);
-        const { data: positionsData, error: posErr } = await supabase
-          .from("member_positions")
-          .select("member_id, position")
-          .in("member_id", memberIds);
-
-        if (!posErr && positionsData) {
-          const posMap = {};
-          positionsData.forEach((p) => {
-            if (!posMap[p.member_id]) posMap[p.member_id] = [];
-            posMap[p.member_id].push(p.position);
-          });
-          members.forEach((m) => {
-            m.positions = posMap[m.id] || [];
-          });
+            if (error) {
+                console.error("Error fetching notes:", error);
+            } else {
+                setMyNotes(notesData || []);
+            }
+            setNotesLoading(false);
         }
+        getMyNotes();
+    }, [memberData]);
 
-        setTeam(members);
-        return;
-      }
+    // Fetch churches where user is the lead
+    useEffect(() => {
+        async function getMyChurches() {
+            if (!memberData?.id) return;
 
-      const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
+            setChurchesLoading(true);
+            const currentYear = 2025; // You can make this dynamic if needed
+            const relationsField = `relations_member_${currentYear}`;
 
-      const { data: mpRows, error: mpErr } = await supabase
-        .from("member_positions")
-        .select("member_id, position")
-        .in("position", managedPositions);
+            const { data: churchesData, error } = await supabase
+                .from("church")
+                .select("id, church_name, physical_city, physical_state")
+                .eq(relationsField, memberData.id)
+                .order("church_name", { ascending: true });
 
-      if (mpErr) throw mpErr;
+            if (error) {
+                console.error("Error fetching churches:", error);
+            } else {
+                setMyChurches(churchesData || []);
+            }
+            setChurchesLoading(false);
+        }
+        getMyChurches();
+    }, [memberData]);
 
-      const ids = [...new Set((mpRows || []).map((r) => r.member_id))];
-      if (ids.length === 0) {
-        setTeam([]);
-        return;
-      }
+    const fetchMyTeam = async () => {
+        if (!memberData) return;
+        setActiveTab("myTeam");
+        setTeamLoading(true);
+        setTeamError(null);
 
-      const { data: members, error: tmErr } = await supabase
-        .from("team_members")
-        .select("id, first_name, last_name, email")
-        .in("id", ids);
+        try {
+            const scopes = positions.flatMap((p) => {
+                const m = MANAGED_BY[p];
+                return m ? [m] : [];
+            });
 
-      if (tmErr) throw tmErr;
+            if (scopes.length === 0) {
+                setTeam([]);
+                return;
+            }
 
-      // fetch and attach their positions
-      const { data: positionsData, error: posErr } = await supabase
-        .from("member_positions")
-        .select("member_id, position")
-        .in("member_id", ids);
+            if (scopes.includes("ALL")) {
+                const { data, error } = await supabase
+                    .from("team_members")
+                    .select("id, first_name, last_name, email, photo_url")
+                    .order("last_name", { ascending: true });
+                if (error) throw error;
 
-      if (!posErr && positionsData) {
-        const posMap = {};
-        positionsData.forEach((p) => {
-          if (!posMap[p.member_id]) posMap[p.member_id] = [];
-          posMap[p.member_id].push(p.position);
-        });
-        members.forEach((m) => {
-          m.positions = posMap[m.id] || [];
-        });
-      }
+                const members = data || [];
 
-      const meId = memberData?.id;
-      const unique = [...new Map((members || []).map((m) => [m.id, m])).values()]
-        .filter((m) => m.id !== meId)
-        .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
-      setTeam(unique);
-    } catch (e) {
-      console.error(e);
-      setTeamError("Could not load your team.");
-      setTeam([]);
-    } finally {
-      setTeamLoading(false);
-    }
-  };
+                // fetch and attach their positions
+                const memberIds = members.map((m) => m.id);
+                const { data: positionsData, error: posErr } = await supabase
+                    .from("member_positions")
+                    .select("member_id, position")
+                    .in("member_id", memberIds);
 
+                if (!posErr && positionsData) {
+                    const posMap = {};
+                    positionsData.forEach((p) => {
+                        if (!posMap[p.member_id]) posMap[p.member_id] = [];
+                        posMap[p.member_id].push(p.position);
+                    });
+                    members.forEach((m) => {
+                        m.positions = posMap[m.id] || [];
+                    });
+                }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
+                setTeam(members);
+                return;
+            }
 
-  return (
-    <div className="max-w-xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-4">Profile</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`px-3 py-2 rounded ${activeTab === "profile" ? "bg-gray-900 text-white" : "bg-gray-200"}`}
-          >
-            Profile
-          </button>
-          <button
-            onClick={fetchMyTeam}
-            className={`px-3 py-2 rounded ${activeTab === "myTeam" ? "bg-emerald-700 text-white" : "bg-emerald-200"}`}
-          >
-            My Team
-          </button>
-        </div>
-      </div>
+            const managedPositions = [...new Set(scopes.flat().filter(Boolean))];
 
-      {/* PROFILE TAB */}
-      {activeTab === "profile" && user && memberData ? (
-        <>
-          <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>Name:</strong> {memberData.first_name} {memberData.last_name}</p>
-          <div className="mt-2">
-            <strong>Position{positions.length !== 1 ? "s" : ""}:</strong>{" "}
-            {positions.length === 0 ? "Currently no positions assigned to user." : (
-              <ul className="list-disc ml-6">
-                {positions.map((p, i) => (<li key={i}>{p}</li>))}
-              </ul>
-            )}
-          </div>
+            const { data: mpRows, error: mpErr } = await supabase
+                .from("member_positions")
+                .select("member_id, position")
+                .in("position", managedPositions);
 
-          <div className="mt-4 flex gap-2">
-            <Link
-              to="/editProfile"
-              className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Edit Information
-            </Link>
+            if (mpErr) throw mpErr;
 
-            <button
-              onClick={handleLogout}
-              className="inline-block bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
-        </>
-      ) : null}
+            const ids = [...new Set((mpRows || []).map((r) => r.member_id))];
+            if (ids.length === 0) {
+                setTeam([]);
+                return;
+            }
 
-      {/* MY TEAM TAB */}
-      {activeTab === "myTeam" && (
-        <div className="mt-2">
-          <h2 className="text-lg font-semibold mb-2">My Team — West Alabama</h2>
-          {teamLoading ? (
-            <p>Loading…</p>
-          ) : teamError ? (
-            <p className="text-red-600">{teamError}</p>
-          ) : team.length === 0 ? (
-            <p>No team members found for your current leadership role(s).</p>
-          ) : (
-            <ul className="divide-y">
-              {team.map((m) => (
-                <li key={m.id} className="py-2 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{m.first_name} {m.last_name}
-                      {m.positions && m.positions.length > 0 && (
-                        <span className="ml-2 text-gray-500 text-sm italic">
-                          ({m.positions.join(", ")})
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600">{m.email}</div>
-                  </div>
-                  <Link
-                    to={`/team-member/${m.id}`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    View details
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+            const { data: members, error: tmErr } = await supabase
+                .from("team_members")
+                .select("id, first_name, last_name, email, photo_url")
+                .in("id", ids);
 
-      {/* MY NOTES SECTION */}
-      {activeTab === "profile" && memberData && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">My Notes</h2>
-          {notesLoading ? (
-            <p>Loading notes...</p>
-          ) : myNotes.length === 0 ? (
-            <p className="text-gray-600">You haven't added any notes yet.</p>
-          ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {myNotes.map((note) => {
-                const noteDate = new Date(note.created_at).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
+            if (tmErr) throw tmErr;
+
+            // fetch and attach their positions
+            const { data: positionsData, error: posErr } = await supabase
+                .from("member_positions")
+                .select("member_id, position")
+                .in("member_id", ids);
+
+            if (!posErr && positionsData) {
+                const posMap = {};
+                positionsData.forEach((p) => {
+                    if (!posMap[p.member_id]) posMap[p.member_id] = [];
+                    posMap[p.member_id].push(p.position);
                 });
-                const churchName = note.church?.church_name 
-                  ? note.church.church_name.replace(/_/g, " ")
-                  : "Unknown Church";
-                
-                return (
-                  <div key={note.id} className="bg-gray-50 p-3 rounded border">
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Church:</strong>{" "}
-                      {note.church_id && note.church?.church_name ? (
-                        <button
-                          onClick={() => navigate(`/church/${encodeURIComponent(note.church.church_name)}`)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {churchName}
-                        </button>
-                      ) : (
-                        churchName
-                      )}
-                      {" - "}
-                      {noteDate}
-                    </p>
-                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
-                  </div>
-                );
-              })}
+                members.forEach((m) => {
+                    m.positions = posMap[m.id] || [];
+                });
+            }
+
+            const meId = memberData?.id;
+            const unique = [...new Map((members || []).map((m) => [m.id, m])).values()]
+                .filter((m) => m.id !== meId)
+                .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
+            setTeam(unique);
+        } catch (e) {
+            console.error(e);
+            setTeamError("Could not load your team.");
+            setTeam([]);
+        } finally {
+            setTeamLoading(false);
+        }
+    };
+
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate("/login");
+    };
+
+    return (
+        <div className="max-w-xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold mb-4">Profile</h1>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setActiveTab("profile")}
+                        className={`px-3 py-2 rounded ${activeTab === "profile" ? "bg-gray-900 text-white" : "bg-gray-200"}`}
+                    >
+                        Profile
+                    </button>
+                    <button
+                        onClick={fetchMyTeam}
+                        className={`px-3 py-2 rounded ${activeTab === "myTeam" ? "bg-emerald-700 text-white" : "bg-emerald-200"}`}
+                    >
+                        My Team
+                    </button>
+                </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* MY CHURCHES SECTION */}
-      {activeTab === "profile" && memberData && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">My Churches</h2>
-          {churchesLoading ? (
-            <p>Loading churches...</p>
-          ) : myChurches.length === 0 ? (
-            <p className="text-gray-600">You are not the lead for any churches.</p>
-          ) : (
-            <ul className="divide-y">
-              {myChurches.map((church) => (
-                <li key={church.id} className="py-2 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">
-                      {church.church_name?.replace(/_/g, " ") || "Unknown"}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {church.physical_city}, {church.physical_state}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    View Church
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+            {/* PROFILE TAB */}
+            {activeTab === "profile" && user && memberData ? (
+                <>
+                    {/* Profile Photo Section */}
+                    {memberData.photo_url && (
+                        <div className="mb-4 flex justify-center">
+                            <PrivateBucketImage
+                                filePath={memberData.photo_url}
+                                className="w-32 h-32 object-cover rounded-full"
+                            />
+                        </div>
+                    )}
 
-      {(!user || !memberData) && activeTab === "profile" && <p>Loading...</p>}
-    </div>
-  );
+                    <p><strong>Email:</strong> {user.email}</p>
+                    <p><strong>Name:</strong> {memberData.first_name} {memberData.last_name}</p>
+                    <div className="mt-2">
+                        <strong>Position{positions.length !== 1 ? "s" : ""}:</strong>{" "}
+                        {positions.length === 0 ? "Currently no positions assigned to user." : (
+                            <ul className="list-disc ml-6">
+                                {positions.map((p, i) => (<li key={i}>{p}</li>))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                        <Link
+                            to="/editProfile"
+                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                            Edit Information
+                        </Link>
+
+                        <button
+                            onClick={handleLogout}
+                            className="inline-block bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </>
+            ) : null}
+
+            {/* MY TEAM TAB */}
+            {activeTab === "myTeam" && (
+                <div className="mt-2">
+                    <h2 className="text-lg font-semibold mb-2">My Team — West Alabama</h2>
+                    {teamLoading ? (
+                        <p>Loading…</p>
+                    ) : teamError ? (
+                        <p className="text-red-600">{teamError}</p>
+                    ) : team.length === 0 ? (
+                        <p>No team members found for your current leadership role(s).</p>
+                    ) : (
+                        <ul className="divide-y">
+                            {team.map((m) => (
+                                <li key={m.id} className="py-2 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        {/* Team member photo */}
+                                        {m.photo_url && (
+                                            <PrivateBucketImage
+                                                filePath={m.photo_url}
+                                                className="w-12 h-12 object-cover rounded-full"
+                                            />
+                                        )}
+                                        <div>
+                                            <div className="font-medium">{m.first_name} {m.last_name}
+                                                {m.positions && m.positions.length > 0 && (
+                                                    <span className="ml-2 text-gray-500 text-sm italic">
+                                                        ({m.positions.join(", ")})
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-sm text-gray-600">{m.email}</div>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        to={`/team-member/${m.id}`}
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        View details
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+
+            {/* MY NOTES SECTION */}
+            {activeTab === "profile" && memberData && (
+                <div className="mt-6">
+                    <h2 className="text-lg font-semibold mb-2">My Notes</h2>
+                    {notesLoading ? (
+                        <p>Loading notes...</p>
+                    ) : myNotes.length === 0 ? (
+                        <p className="text-gray-600">You haven't added any notes yet.</p>
+                    ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {myNotes.map((note) => {
+                                const noteDate = new Date(note.created_at).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                });
+                                const churchName = note.church?.church_name
+                                    ? note.church.church_name.replace(/_/g, " ")
+                                    : "Unknown Church";
+
+                                return (
+                                    <div key={note.id} className="bg-gray-50 p-3 rounded border">
+                                        <p className="text-sm text-gray-600 mb-1">
+                                            <strong>Church:</strong>{" "}
+                                            {note.church_id && note.church?.church_name ? (
+                                                <button
+                                                    onClick={() => navigate(`/church/${encodeURIComponent(note.church.church_name)}`)}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {churchName}
+                                                </button>
+                                            ) : (
+                                                churchName
+                                            )}
+                                            {" - "}
+                                            {noteDate}
+                                        </p>
+                                        <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* MY CHURCHES SECTION */}
+            {activeTab === "profile" && memberData && (
+                <div className="mt-6">
+                    <h2 className="text-lg font-semibold mb-2">My Churches</h2>
+                    {churchesLoading ? (
+                        <p>Loading churches...</p>
+                    ) : myChurches.length === 0 ? (
+                        <p className="text-gray-600">You are not the lead for any churches.</p>
+                    ) : (
+                        <ul className="divide-y">
+                            {myChurches.map((church) => (
+                                <li key={church.id} className="py-2 flex items-center justify-between">
+                                    <div>
+                                        <div className="font-medium">
+                                            {church.church_name?.replace(/_/g, " ") || "Unknown"}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                            {church.physical_city}, {church.physical_state}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        View Church
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+
+            {(!user || !memberData) && activeTab === "profile" && <p>Loading...</p>}
+        </div>
+    );
 }
