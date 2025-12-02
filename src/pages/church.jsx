@@ -15,6 +15,7 @@ export default function ChurchPage() {
   const [isEditingShoebox, setIsEditingShoebox] = useState(false);
   const [shoeboxEditValue, setShoeboxEditValue] = useState("");
   const [savingShoebox, setSavingShoebox] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   
   const SHOEBOX_YEAR = 2025; 
@@ -52,6 +53,8 @@ export default function ChurchPage() {
           console.error("Error fetching current team member:", error);
         } else {
           setCurrentTeamMember(memberData);
+          // Check if user is admin
+          setIsAdmin(memberData?.admin_flag === true || memberData?.admin_flag === "true");
         }
       }
     }
@@ -61,50 +64,21 @@ export default function ChurchPage() {
   // Fetch notes for this church
   useEffect(() => {
     async function getNotes() {
-      if (!church || !church.id) {
-        setNotesLoading(false);
-        return;
-      }
+      if (!church) return;
       
-      // Fetch notes without foreign key join first
       const { data: notesData, error } = await supabase
         .from("notes")
-        .select("*")
+        .select(`
+          *,
+          team_members!added_by_team_member_id(first_name, last_name)
+        `)
         .eq("church_id", church.id)
         .order("created_at", { ascending: false });
       
       if (error) {
         console.error("Error fetching notes:", error);
-        setNotes([]);
       } else {
-        // If we have notes, fetch team member names separately
-        if (notesData && notesData.length > 0) {
-          const memberIds = [...new Set(notesData.map(n => n.added_by_team_member_id).filter(Boolean))];
-          if (memberIds.length > 0) {
-            const { data: membersData } = await supabase
-              .from("team_members")
-              .select("id, first_name, last_name")
-              .in("id", memberIds);
-            
-            const membersMap = {};
-            if (membersData) {
-              membersData.forEach(m => {
-                membersMap[m.id] = m;
-              });
-            }
-            
-            // Attach team member info to notes
-            const notesWithMembers = notesData.map(note => ({
-              ...note,
-              team_members: membersMap[note.added_by_team_member_id] || null
-            }));
-            setNotes(notesWithMembers);
-          } else {
-            setNotes(notesData);
-          }
-        } else {
-          setNotes([]);
-        }
+        setNotes(notesData || []);
       }
       setNotesLoading(false);
     }
@@ -190,41 +164,53 @@ export default function ChurchPage() {
       alert("Failed to add note. Please try again.");
     } else {
       setNewNote("");
-      // Refresh notes using the same logic as getNotes
+      // Refresh notes
       const { data: notesData, error: fetchError } = await supabase
         .from("notes")
-        .select("*")
+        .select(`
+          *,
+          team_members!added_by_team_member_id(first_name, last_name)
+        `)
         .eq("church_id", church.id)
         .order("created_at", { ascending: false });
       
       if (!fetchError && notesData) {
-        // Fetch team member names if we have notes
-        if (notesData.length > 0) {
-          const memberIds = [...new Set(notesData.map(n => n.added_by_team_member_id).filter(Boolean))];
-          if (memberIds.length > 0) {
-            const { data: membersData } = await supabase
-              .from("team_members")
-              .select("id, first_name, last_name")
-              .in("id", memberIds);
-            
-            const membersMap = {};
-            if (membersData) {
-              membersData.forEach(m => {
-                membersMap[m.id] = m;
-              });
-            }
-            
-            const notesWithMembers = notesData.map(note => ({
-              ...note,
-              team_members: membersMap[note.added_by_team_member_id] || null
-            }));
-            setNotes(notesWithMembers);
-          } else {
-            setNotes(notesData);
-          }
-        } else {
-          setNotes([]);
-        }
+        setNotes(notesData);
+      }
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    console.log("Delete note clicked:", noteId);
+    if (!window.confirm("Are you sure you want to delete this note?")) {
+      return;
+    }
+
+    console.log("Deleting note:", noteId);
+    const { error } = await supabase
+      .from("notes")
+      .delete()
+      .eq("id", noteId);
+
+    if (error) {
+      console.error("Error deleting note:", error);
+      alert(`Failed to delete note: ${error.message}`);
+    } else {
+      console.log("Note deleted successfully, refreshing notes");
+      // Refresh notes
+      const { data: notesData, error: fetchError } = await supabase
+        .from("notes")
+        .select(`
+          *,
+          team_members!added_by_team_member_id(first_name, last_name)
+        `)
+        .eq("church_id", church.id)
+        .order("created_at", { ascending: false });
+      
+      if (!fetchError && notesData) {
+        setNotes(notesData);
+      } else if (fetchError) {
+        console.error("Error refreshing notes:", fetchError);
       }
     }
   };
@@ -318,9 +304,24 @@ export default function ChurchPage() {
                 
                 return (
                   <div key={note.id} className="bg-white p-3 rounded border">
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>{addedByName}</strong> - {noteDate}
-                    </p>
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm text-gray-600">
+                        <strong>{addedByName}</strong> - {noteDate}
+                      </p>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteNote(note.id);
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                     <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
                   </div>
                 );

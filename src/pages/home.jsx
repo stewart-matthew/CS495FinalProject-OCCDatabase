@@ -100,8 +100,8 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {churches.map((church) => (
-                                <tr key={church.church_name}>
+                            {churches.map((church, index) => (
+                                <tr key={church.id || church.church_name || `church-${index}`}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{church.church_name.replace(/_/g, " ")}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-28">
                                         <input
@@ -344,8 +344,8 @@ export default function Home() {
 
             {/* Church Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {churches.map((church) => (
-                    <div key={church.church_name} className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between">
+                {churches.map((church, index) => (
+                    <div key={church.id || church.church_name || `church-card-${index}`} className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between">
                         <div>
                             <h2 className="text-xl font-bold mb-2">{church.church_name.replace(/_/g, " ")}</h2>
                             <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>
