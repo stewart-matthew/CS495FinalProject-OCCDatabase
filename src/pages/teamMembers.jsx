@@ -88,7 +88,7 @@ export default function TeamMembers() {
         const fetchMembers = async () => {
             const { data: membersData, error } = await supabase
                 .from("team_members")
-                .select(`*, member_positions(position)`);
+                .select(`*, member_positions(position, end_date)`);
 
             if (error) {
                 setMembers([]);
@@ -111,13 +111,16 @@ export default function TeamMembers() {
                             churchData = church;
                         }
                     }
+                    
+                    // Filter to only active positions (no end_date)
                     let positionsText = "N/A";
                     if (Array.isArray(m.member_positions) && m.member_positions.length > 0) {
-                        const positions = m.member_positions
-                            .map((p) => p.position)        // or p.position_code / p.role_name depending on your column
+                        const activePositions = m.member_positions
+                            .filter(p => !p.end_date) // Only positions without end_date
+                            .map((p) => p.position)
                             .filter(Boolean);
-                        if (positions.length > 0) {
-                            positionsText = positions.join(", ");
+                        if (activePositions.length > 0) {
+                            positionsText = activePositions.join(", ");
                         }
                     }
 

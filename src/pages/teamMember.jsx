@@ -37,7 +37,7 @@ export default function TeamMemberPage() {
     const { id } = useParams();
     const [member, setMember] = useState(null);
     const [church, setChurch] = useState(null);
-    const [projectLeaderChurches, setProjectLeaderChurches] = useState([]);
+    const [relationsChurches, setRelationsChurches] = useState([]);
     const [churchesLoading, setChurchesLoading] = useState(true);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -91,28 +91,29 @@ export default function TeamMemberPage() {
         getMember();
     }, [id]);
 
-    // Fetch churches where this team member is the project leader
+    // Fetch churches where this team member is the Church Relations Team Member
     useEffect(() => {
-        async function getProjectLeaderChurches() {
+        async function getRelationsChurches() {
             if (!member) return;
 
             setChurchesLoading(true);
-            const userFullName = `${member.first_name} ${member.last_name}`;
+            const currentYear = new Date().getFullYear();
+            const relationsField = `relations_member_${currentYear}`;
 
             const { data: churchesData, error } = await supabase
                 .from("church2")
                 .select("id, church_name, physical_city, physical_state, physical_county")
-                .eq("project_leader", userFullName)
+                .eq(relationsField, member.id)
                 .order("church_name", { ascending: true });
 
             if (error) {
-                // Error fetching project leader churches
+                // Error fetching relations churches
             } else {
-                setProjectLeaderChurches(churchesData || []);
+                setRelationsChurches(churchesData || []);
             }
             setChurchesLoading(false);
         }
-        getProjectLeaderChurches();
+        getRelationsChurches();
     }, [member]);
 
     if (loading) return <p className="text-center mt-10">Loading team member...</p>;
@@ -207,17 +208,17 @@ export default function TeamMemberPage() {
                 </div>
             </div>
 
-            {/* Project Leader Churches Section */}
+            {/* Church Relations Team Member Churches Section */}
             <div className="mt-8 bg-gray-50 p-4 rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">Churches as Project Leader</h2>
+                <h2 className="text-xl font-semibold mb-4">Churches as Church Relations Team Member</h2>
                 
                 {churchesLoading ? (
                     <p className="text-gray-500">Loading churches...</p>
-                ) : projectLeaderChurches.length === 0 ? (
-                    <p className="text-gray-500">Not the project leader for any churches.</p>
+                ) : relationsChurches.length === 0 ? (
+                    <p className="text-gray-500">Not the Church Relations Team Member for any churches.</p>
                 ) : (
                     <div className="space-y-3">
-                        {projectLeaderChurches.map((church) => (
+                        {relationsChurches.map((church) => (
                             <div key={church.id} className="bg-white p-4 rounded border">
                                 <div className="flex justify-between items-start">
                                     <div>

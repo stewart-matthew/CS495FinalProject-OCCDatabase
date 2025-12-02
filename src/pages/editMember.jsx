@@ -44,6 +44,68 @@ export default function EditMember() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [uploading, setUploading] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [availablePositions, setAvailablePositions] = useState([]);
+    const [selectedPositions, setSelectedPositions] = useState([]);
+
+    // Check if current user is admin
+    useEffect(() => {
+        const checkAdmin = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: memberData, error } = await supabase
+                    .from("team_members")
+                    .select("admin_flag")
+                    .eq("email", user.email)
+                    .single();
+                
+                if (!error && memberData) {
+                    const adminStatus = memberData?.admin_flag === true || memberData?.admin_flag === "true";
+                    setIsAdmin(adminStatus);
+                }
+            }
+        };
+        checkAdmin();
+    }, []);
+
+    // Fetch available positions from positions table
+    useEffect(() => {
+        const loadPositions = async () => {
+            if (!isAdmin) return;
+            
+            // Get all positions from positions table
+            const { data, error } = await supabase
+                .from("positions")
+                .select("*")
+                .order("code", { ascending: true });
+            
+            if (!error && data) {
+                setAvailablePositions(data);
+            }
+        };
+        loadPositions();
+    }, [isAdmin]);
+
+    // Fetch current member positions
+    useEffect(() => {
+        const loadMemberPositions = async () => {
+            if (!id || !isAdmin) return;
+            
+            const { data, error } = await supabase
+                .from("member_positions")
+                .select("position")
+                .eq("member_id", id)
+                .is("end_date", null); // Only get active positions (no end_date)
+            
+            if (!error && data) {
+                const activePositions = data.map(p => p.position).filter(Boolean);
+                setSelectedPositions(activePositions);
+            } else {
+                setSelectedPositions([]);
+            }
+        };
+        loadMemberPositions();
+    }, [id, isAdmin]);
 
     useEffect(() => {
         const loadMember = async () => {
@@ -120,17 +182,105 @@ export default function EditMember() {
         setLoading(true);
         setError("");
 
-        const { error } = await supabase
+        // Update team member basic info
+        const { error: memberError } = await supabase
             .from("team_members")
             .update({ ...form, updated_at: new Date().toISOString() })
             .eq("id", id);
 
-        if (error) {
-            setError(error.message);
-        } else {
-            navigate("/team-members");
+        if (memberError) {
+            setError(memberError.message);
+            setLoading(false);
+            return;
         }
+
+        // Update positions if admin
+        if (isAdmin) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Get current active positions to compare
+            const { data: currentPositions } = await supabase
+                .from("member_positions")
+                .select("position")
+                .eq("member_id", id)
+                .is("end_date", null);
+            
+            const currentPositionCodes = (currentPositions || []).map(p => p.position);
+            const selectedSet = new Set(selectedPositions);
+            const currentSet = new Set(currentPositionCodes);
+            
+            // Check if positions actually changed
+            const positionsChanged = 
+                selectedPositions.length !== currentPositionCodes.length ||
+                !selectedPositions.every(pos => currentSet.has(pos)) ||
+                !currentPositionCodes.every(pos => selectedSet.has(pos));
+            
+            if (positionsChanged) {
+                // End all current active positions
+                const { error: endError } = await supabase
+                    .from("member_positions")
+                    .update({ end_date: today })
+                    .eq("member_id", id)
+                    .is("end_date", null);
+
+                if (endError) {
+                    setError(endError.message);
+                    setLoading(false);
+                    return;
+                }
+
+                // Add new positions for selected ones
+                if (selectedPositions.length > 0) {
+                    // Remove duplicates from selectedPositions
+                    const uniqueSelectedPositions = [...new Set(selectedPositions.filter(pos => pos))];
+                    
+                    // Check for existing positions with the same start_date to avoid duplicates
+                    const { data: existingToday } = await supabase
+                        .from("member_positions")
+                        .select("position")
+                        .eq("member_id", id)
+                        .eq("start_date", today)
+                        .is("end_date", null);
+                    
+                    const existingPositionCodes = new Set((existingToday || []).map(p => p.position));
+                    
+                    // Only insert positions that don't already exist for today
+                    const positionsToInsert = uniqueSelectedPositions
+                        .filter(position => !existingPositionCodes.has(position))
+                        .map(position => ({
+                            member_id: id,
+                            position: position,
+                            start_date: today,
+                            end_date: null
+                        }));
+
+                    if (positionsToInsert.length > 0) {
+                        const { error: insertError } = await supabase
+                            .from("member_positions")
+                            .insert(positionsToInsert);
+
+                        if (insertError) {
+                            setError(insertError.message);
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        navigate("/team-members");
         setLoading(false);
+    };
+
+    const handlePositionToggle = (positionCode) => {
+        setSelectedPositions(prev => {
+            if (prev.includes(positionCode)) {
+                return prev.filter(p => p !== positionCode);
+            } else {
+                return [...prev, positionCode];
+            }
+        });
     };
 
     if (loading || !form) return <p className="text-center mt-10">Loading...</p>;
@@ -161,7 +311,7 @@ export default function EditMember() {
 
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
                 {Object.keys(form).map((field) =>
-                    ["id", "created_at", "updated_at", "admin_flag", "photo_url"].includes(field)
+                    ["id", "created_at", "updated_at", "admin_flag", "photo_url", "position"].includes(field)
                         ? null
                         : field === "active" ? (
                             <label key={field} className="col-span-2 flex items-center gap-2">
@@ -188,6 +338,50 @@ export default function EditMember() {
                             </div>
                         )
                 )}
+
+                {/* Position Selection - Admin Only */}
+                <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-2">Position(s)</label>
+                    {!isAdmin ? (
+                        <p className="text-sm text-gray-500">Only admins can edit positions.</p>
+                    ) : availablePositions.length === 0 ? (
+                        <p className="text-sm text-gray-500">Loading positions...</p>
+                    ) : (
+                        <div className="border rounded-md p-4 bg-gray-50 max-h-64 overflow-y-auto">
+                            <div className="space-y-2">
+                                {availablePositions.map((pos) => {
+                                    const positionCode = pos.code || '';
+                                    const displayName = pos.name || pos.description || pos.code || positionCode;
+                                    const isSelected = selectedPositions.includes(positionCode);
+                                    return (
+                                        <label
+                                            key={positionCode}
+                                            className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => handlePositionToggle(positionCode)}
+                                                disabled={loading}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            />
+                                            <span className={`text-sm ${isSelected ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
+                                                {displayName}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                            {selectedPositions.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <p className="text-xs text-gray-600">
+                                        <strong>Selected:</strong> {selectedPositions.length} position{selectedPositions.length !== 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <div className="col-span-2 flex justify-end gap-2 mt-4">
                     <button

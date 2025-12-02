@@ -90,10 +90,13 @@ export default function Profile() {
                 const { data: posRows, error: posError } = await supabase
                     .from("member_positions")
                     .select("position")
-                    .eq("member_id", member.id);
+                    .eq("member_id", member.id)
+                    .is("end_date", null); // Only get active positions
 
                 if (!posError && posRows) {
-                    setPositions(posRows.map(r => r.position));
+                    // Remove duplicates and get unique positions
+                    const uniquePositions = [...new Set(posRows.map(r => r.position).filter(Boolean))];
+                    setPositions(uniquePositions);
                 }
             } else {
                 setPositions([]); // no member found → clear positions array
