@@ -47,7 +47,6 @@ export default function AddMember() {
       home_state: 2,
       home_zip: 10,
       home_county: 100,
-      shirt_size: 10,
       church_affiliation_name: 200,
       church_affiliation_city: 100,
       church_affiliation_state: 2,
@@ -130,8 +129,14 @@ export default function AddMember() {
       return;
     }
 
+    // Prepare form data, converting empty strings to null for optional fields
+    const formData = { ...form };
+    if (formData.shirt_size === "") {
+      formData.shirt_size = null;
+    }
+
     const { error } = await supabase.from("team_members").insert([
-      { ...form },
+      formData,
     ]);
 
     if (error) {
@@ -189,32 +194,49 @@ export default function AddMember() {
               <label className="block text-sm font-medium mb-1 capitalize">
                 {field.replaceAll("_", " ")}
               </label>
-              <input
-                type={field === "date_of_birth" ? "date" : field === "email" ? "email" : "text"}
-                name={field}
-                value={form[field]}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                maxLength={
-                  field === "first_name" ? 50 :
-                  field === "last_name" ? 50 :
-                  field === "email" ? 100 :
-                  field === "phone_number" ? 20 :
-                  field === "alt_phone_number" ? 20 :
-                  field === "home_address" ? 200 :
-                  field === "home_city" ? 100 :
-                  field === "home_state" ? 2 :
-                  field === "home_zip" ? 10 :
-                  field === "home_county" ? 100 :
-                  field === "shirt_size" ? 10 :
-                  field === "church_affiliation_name" ? 200 :
-                  field === "church_affiliation_city" ? 100 :
-                  field === "church_affiliation_state" ? 2 :
-                  field === "church_affiliation_county" ? 100 :
-                  field === "member_notes" ? 1000 :
-                  undefined
-                }
-              />
+              {field === "shirt_size" ? (
+                <select
+                  name={field}
+                  value={form[field]}
+                  onChange={handleChange}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  <option value="">Select size (optional)</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                  <option value="XXXL">XXXL</option>
+                </select>
+              ) : (
+                <input
+                  type={field === "date_of_birth" ? "date" : field === "email" ? "email" : "text"}
+                  name={field}
+                  value={form[field]}
+                  onChange={handleChange}
+                  className="w-full border rounded-md px-3 py-2"
+                  maxLength={
+                    field === "first_name" ? 50 :
+                    field === "last_name" ? 50 :
+                    field === "email" ? 100 :
+                    field === "phone_number" ? 20 :
+                    field === "alt_phone_number" ? 20 :
+                    field === "home_address" ? 200 :
+                    field === "home_city" ? 100 :
+                    field === "home_state" ? 2 :
+                    field === "home_zip" ? 10 :
+                    field === "home_county" ? 100 :
+                    field === "church_affiliation_name" ? 200 :
+                    field === "church_affiliation_city" ? 100 :
+                    field === "church_affiliation_state" ? 2 :
+                    field === "church_affiliation_county" ? 100 :
+                    field === "member_notes" ? 1000 :
+                    undefined
+                  }
+                />
+              )}
             </div>
           ))}
         </div>

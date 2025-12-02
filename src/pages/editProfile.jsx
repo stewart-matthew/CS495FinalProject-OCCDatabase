@@ -183,7 +183,7 @@ export default function EditProfile() {
                     home_zip: formData.home_zip ?? null,
                     home_county: formData.home_county ?? null,
                     date_of_birth: formData.date_of_birth ?? null,
-                    shirt_size: formData.shirt_size ?? null,
+                    shirt_size: formData.shirt_size && formData.shirt_size.trim() !== "" ? formData.shirt_size : null,
                     church_affiliation_name: formData.church_affiliation_name ?? null,
                     church_affiliation_city: formData.church_affiliation_city ?? null,
                     church_affiliation_state: formData.church_affiliation_state ?? null,
@@ -360,13 +360,21 @@ export default function EditProfile() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Shirt Size</label>
-                            <input
+                            <select
                                 name="shirt_size"
                                 value={formData.shirt_size || ""}
                                 onChange={handleChange}
                                 className="w-full border rounded-md px-3 py-2"
-                                maxLength={10}
-                            />
+                            >
+                                <option value="">Select size (optional)</option>
+                                <option value="XS">XS</option>
+                                <option value="S">S</option>
+                                <option value="M">M</option>
+                                <option value="L">L</option>
+                                <option value="XL">XL</option>
+                                <option value="XXL">XXL</option>
+                                <option value="XXXL">XXXL</option>
+                            </select>
                         </div>
                     </div>
                 </div>

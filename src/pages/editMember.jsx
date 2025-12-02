@@ -182,10 +182,16 @@ export default function EditMember() {
         setLoading(true);
         setError("");
 
+        // Prepare form data, converting empty strings to null for optional fields
+        const formData = { ...form };
+        if (formData.shirt_size === "") {
+            formData.shirt_size = null;
+        }
+
         // Update team member basic info
         const { error: memberError } = await supabase
             .from("team_members")
-            .update({ ...form, updated_at: new Date().toISOString() })
+            .update({ ...formData, updated_at: new Date().toISOString() })
             .eq("id", id);
 
         if (memberError) {
@@ -323,6 +329,27 @@ export default function EditMember() {
                                 />
                                 Active Member
                             </label>
+                        ) : field === "shirt_size" ? (
+                            <div key={field} className="col-span-1">
+                                <label className="block text-sm font-medium mb-1 capitalize">
+                                    {field.replaceAll("_", " ")}
+                                </label>
+                                <select
+                                    name={field}
+                                    value={form[field] ?? ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                >
+                                    <option value="">Select size (optional)</option>
+                                    <option value="XS">XS</option>
+                                    <option value="S">S</option>
+                                    <option value="M">M</option>
+                                    <option value="L">L</option>
+                                    <option value="XL">XL</option>
+                                    <option value="XXL">XXL</option>
+                                    <option value="XXXL">XXXL</option>
+                                </select>
+                            </div>
                         ) : (
                             <div key={field} className="col-span-1">
                                 <label className="block text-sm font-medium mb-1 capitalize">
