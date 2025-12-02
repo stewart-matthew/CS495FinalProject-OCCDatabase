@@ -6,6 +6,7 @@ export default function Individuals() {
     const [filteredIndividuals, setFilteredIndividuals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [copyStatus, setCopyStatus] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     
     // Filter states
     const [filters, setFilters] = useState({
@@ -39,6 +40,27 @@ export default function Individuals() {
             setLoading(false);
         }
         getIndividuals();
+    }, []);
+
+    // Fetch current team member and check admin status
+    useEffect(() => {
+        async function getCurrentTeamMember() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: memberData, error } = await supabase
+                    .from("team_members")
+                    .select("*")
+                    .eq("email", user.email)
+                    .single();
+                if (error) {
+                    console.error("Error fetching current team member:", error);
+                } else {
+                    // Check if user is admin
+                    setIsAdmin(memberData?.admin_flag === true || memberData?.admin_flag === "true");
+                }
+            }
+        }
+        getCurrentTeamMember();
     }, []);
 
     // Apply filters and sorting
@@ -132,6 +154,11 @@ export default function Individuals() {
     };
 
     const toggleActiveStatus = async (individual) => {
+        if (!isAdmin) {
+            alert("Only admins can update active/inactive status.");
+            return;
+        }
+
         const newStatus = !individual.active_to_emails;
         
         const { error } = await supabase
@@ -157,7 +184,7 @@ export default function Individuals() {
     if (loading) return <p className="text-center mt-10">Loading individuals...</p>;
 
     return (
-        <div className="max-w-7xl mx-auto mt-10">
+        <div className="max-w-6xl mx-auto mt-10">
             <h1 className="text-3xl font-bold mb-6">Individuals</h1>
 
             {/* Filters Section */}
@@ -347,16 +374,28 @@ export default function Individuals() {
                                             {ind.church_name ? ind.church_name.replace(/_/g, " ") : "N/A"}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <button
-                                                onClick={() => toggleActiveStatus(ind)}
-                                                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                                    ind.active_to_emails 
-                                                        ? "bg-green-100 text-green-800 hover:bg-green-200" 
-                                                        : "bg-red-100 text-red-800 hover:bg-red-200"
-                                                }`}
-                                            >
-                                                {ind.active_to_emails ? "Active" : "Inactive"}
-                                            </button>
+                                            <label className={`flex items-center ${isAdmin ? "cursor-pointer" : "cursor-not-allowed"}`}>
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={ind.active_to_emails || false}
+                                                        onChange={() => toggleActiveStatus(ind)}
+                                                        disabled={!isAdmin}
+                                                        className="sr-only"
+                                                    />
+                                                    <div className={`block w-14 h-8 rounded-full transition-colors ${
+                                                        ind.active_to_emails ? "bg-green-500" : "bg-gray-300"
+                                                    } ${!isAdmin ? "opacity-60" : ""}`}></div>
+                                                    <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                                                        ind.active_to_emails ? "transform translate-x-6" : ""
+                                                    }`}></div>
+                                                </div>
+                                                <span className={`ml-3 text-xs font-medium ${
+                                                    ind.active_to_emails ? "text-green-700" : "text-gray-600"
+                                                }`}>
+                                                    {ind.active_to_emails ? "Active" : "Inactive"}
+                                                </span>
+                                            </label>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
                                             <div className="flex flex-wrap gap-1">
