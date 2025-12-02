@@ -20,13 +20,17 @@ export default function ChurchPage() {
   const [isEditingProjectLeader, setIsEditingProjectLeader] = useState(false);
   const [selectedProjectLeader, setSelectedProjectLeader] = useState("");
   const [savingProjectLeader, setSavingProjectLeader] = useState(false);
+  const [isEditingRelationsMember, setIsEditingRelationsMember] = useState(false);
+  const [selectedRelationsMember, setSelectedRelationsMember] = useState("");
+  const [savingRelationsMember, setSavingRelationsMember] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [editingNoteContent, setEditingNoteContent] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const navigate = useNavigate();
   
   // Get current year dynamically - automatically switches to 2026 when the year changes
-  const SHOEBOX_YEAR = new Date().getFullYear(); 
+  const SHOEBOX_YEAR = new Date().getFullYear();
+  const relationsFieldName = `relations_member_${SHOEBOX_YEAR}`; 
 
   useEffect(() => {
     async function getChurch() {
@@ -293,12 +297,12 @@ export default function ChurchPage() {
     setIsEditingProjectLeader(true);
     // Set current project leader as selected
     if (church.project_leader) {
-      // Find matching team member by matching "First Last" format
-      const matchingMember = teamMembers.find(member => 
-        `${member.first_name} ${member.last_name}` === church.project_leader
+      // Find matching individual by matching "First Last" format
+      const matchingIndividual = individuals.find(ind => 
+        `${ind.first_name} ${ind.last_name}` === church.project_leader
       );
-      if (matchingMember) {
-        setSelectedProjectLeader(matchingMember.id);
+      if (matchingIndividual) {
+        setSelectedProjectLeader(matchingIndividual.id);
       } else {
         setSelectedProjectLeader("");
       }
@@ -317,10 +321,10 @@ export default function ChurchPage() {
     
     setSavingProjectLeader(true);
     
-    // Get selected team member's name
-    const selectedMember = teamMembers.find(m => m.id === selectedProjectLeader);
-    const projectLeaderName = selectedMember 
-      ? `${selectedMember.first_name} ${selectedMember.last_name}`
+    // Get selected individual's name
+    const selectedIndividual = individuals.find(ind => ind.id === selectedProjectLeader);
+    const projectLeaderName = selectedIndividual 
+      ? `${selectedIndividual.first_name} ${selectedIndividual.last_name}`
       : null;
 
     // Convert spaces to underscores to match database format
@@ -339,6 +343,47 @@ export default function ChurchPage() {
       setSelectedProjectLeader("");
     }
     setSavingProjectLeader(false);
+  };
+
+  const handleEditRelationsMember = () => {
+    if (!isAdmin) return;
+    setIsEditingRelationsMember(true);
+    // Set current relations member as selected
+    if (church[relationsFieldName]) {
+      setSelectedRelationsMember(church[relationsFieldName]);
+    } else {
+      setSelectedRelationsMember("");
+    }
+  };
+
+  const handleCancelEditRelationsMember = () => {
+    setIsEditingRelationsMember(false);
+    setSelectedRelationsMember("");
+  };
+
+  const handleSaveRelationsMember = async () => {
+    if (!church || !isAdmin) return;
+    
+    setSavingRelationsMember(true);
+    
+    // Convert spaces to underscores to match database format
+    const dbChurchName = church.church_name.replace(/ /g, "_");
+    const updateData = { [relationsFieldName]: selectedRelationsMember || null };
+    
+    const { error } = await supabase
+      .from("church2")
+      .update(updateData)
+      .eq("church_name", dbChurchName);
+
+    if (error) {
+      alert("Failed to update church relations team member. Please try again.");
+    } else {
+      // Update local state
+      setChurch({ ...church, [relationsFieldName]: selectedRelationsMember || null });
+      setIsEditingRelationsMember(false);
+      setSelectedRelationsMember("");
+    }
+    setSavingRelationsMember(false);
   };
 
   if (loading) return <p>Loading church...</p>;
@@ -364,9 +409,9 @@ export default function ChurchPage() {
                   disabled={savingProjectLeader}
                 >
                   <option value="">None</option>
-                  {teamMembers.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.first_name} {member.last_name}
+                  {individuals.map((ind) => (
+                    <option key={ind.id} value={ind.id}>
+                      {ind.first_name} {ind.last_name}
                     </option>
                   ))}
                 </select>
@@ -391,6 +436,61 @@ export default function ChurchPage() {
                 {isAdmin && (
                   <button
                     onClick={handleEditProjectLeader}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="text-gray-700 mb-2 flex items-center gap-2">
+            <span><strong>Church Relations Team Member:</strong></span>
+            {isEditingRelationsMember && isAdmin ? (
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedRelationsMember}
+                  onChange={(e) => setSelectedRelationsMember(e.target.value)}
+                  className="border rounded-md p-1"
+                  disabled={savingRelationsMember}
+                >
+                  <option value="">None</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.first_name} {member.last_name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSaveRelationsMember}
+                  disabled={savingRelationsMember}
+                  className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
+                >
+                  {savingRelationsMember ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={handleCancelEditRelationsMember}
+                  disabled={savingRelationsMember}
+                  className="bg-gray-300 text-black px-3 py-1 rounded text-sm hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>
+                  {(() => {
+                    const relationsMemberId = church[relationsFieldName];
+                    if (relationsMemberId) {
+                      const member = teamMembers.find(m => m.id === relationsMemberId);
+                      return member ? `${member.first_name} ${member.last_name}` : "N/A";
+                    }
+                    return "N/A";
+                  })()}
+                </span>
+                {isAdmin && (
+                  <button
+                    onClick={handleEditRelationsMember}
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     Edit
