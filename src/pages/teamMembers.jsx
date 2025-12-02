@@ -111,10 +111,19 @@ export default function TeamMembers() {
                             churchData = church;
                         }
                     }
+                    let positionsText = "N/A";
+                    if (Array.isArray(m.member_positions) && m.member_positions.length > 0) {
+                        const positions = m.member_positions
+                            .map((p) => p.position)        // or p.position_code / p.role_name depending on your column
+                            .filter(Boolean);
+                        if (positions.length > 0) {
+                            positionsText = positions.join(", ");
+                        }
+                    }
 
                     return {
                         ...m,
-                        position: m.member_positions?.position || "N/A",
+                        position: positionsText,
                         church_name: churchData?.church_name || m.church_affiliation_name || null,
                         church_county: churchData?.physical_county || null,
                     };

@@ -55,9 +55,20 @@ export default function TeamMemberPage() {
                 return;
             }
 
+            // 🔹 NEW: support multiple positions (and 0 / 1) from member_positions array
+            let positionsText = "N/A";
+            if (Array.isArray(memberData.member_positions) && memberData.member_positions.length > 0) {
+                const positions = memberData.member_positions
+                    .map((p) => p.position)
+                    .filter(Boolean);
+                if (positions.length > 0) {
+                    positionsText = positions.join(", ");
+                }
+            }
+
             const formattedMember = {
                 ...memberData,
-                position: memberData.member_positions?.position || "N/A",
+                position: positionsText,
             };
             setMember(formattedMember);
 
@@ -238,4 +249,3 @@ export default function TeamMemberPage() {
         </div>
     );
 }
-
