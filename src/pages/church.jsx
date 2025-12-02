@@ -12,19 +12,27 @@ export default function ChurchPage() {
   const [loading, setLoading] = useState(true);
   const [individualsLoading, setIndividualsLoading] = useState(true);
   const [notesLoading, setNotesLoading] = useState(true);
+  const [isEditingShoebox, setIsEditingShoebox] = useState(false);
+  const [shoeboxEditValue, setShoeboxEditValue] = useState("");
+  const [savingShoebox, setSavingShoebox] = useState(false);
   const navigate = useNavigate();
   
   const SHOEBOX_YEAR = 2025; 
 
   useEffect(() => {
     async function getChurch() {
+      // Convert spaces to underscores to match database format
+      const dbChurchName = churchName.replace(/ /g, "_");
       const { data, error } = await supabase
         .from("church")
         .select("*")
-        .eq("church_name", churchName)
+        .eq("church_name", dbChurchName)
         .single();
-      if (error) console.error(error);
-      else setChurch(data);
+      if (error) {
+        console.error("Error fetching church:", error);
+      } else {
+        setChurch(data);
+      }
       setLoading(false);
     }
     getChurch();
@@ -53,21 +61,50 @@ export default function ChurchPage() {
   // Fetch notes for this church
   useEffect(() => {
     async function getNotes() {
-      if (!church) return;
+      if (!church || !church.id) {
+        setNotesLoading(false);
+        return;
+      }
       
+      // Fetch notes without foreign key join first
       const { data: notesData, error } = await supabase
         .from("notes")
-        .select(`
-          *,
-          team_members!added_by_team_member_id(first_name, last_name)
-        `)
+        .select("*")
         .eq("church_id", church.id)
         .order("created_at", { ascending: false });
       
       if (error) {
         console.error("Error fetching notes:", error);
+        setNotes([]);
       } else {
-        setNotes(notesData || []);
+        // If we have notes, fetch team member names separately
+        if (notesData && notesData.length > 0) {
+          const memberIds = [...new Set(notesData.map(n => n.added_by_team_member_id).filter(Boolean))];
+          if (memberIds.length > 0) {
+            const { data: membersData } = await supabase
+              .from("team_members")
+              .select("id, first_name, last_name")
+              .in("id", memberIds);
+            
+            const membersMap = {};
+            if (membersData) {
+              membersData.forEach(m => {
+                membersMap[m.id] = m;
+              });
+            }
+            
+            // Attach team member info to notes
+            const notesWithMembers = notesData.map(note => ({
+              ...note,
+              team_members: membersMap[note.added_by_team_member_id] || null
+            }));
+            setNotes(notesWithMembers);
+          } else {
+            setNotes(notesData);
+          }
+        } else {
+          setNotes([]);
+        }
       }
       setNotesLoading(false);
     }
@@ -76,18 +113,65 @@ export default function ChurchPage() {
 
   useEffect(() => {
     async function getIndividuals() {
+      // Convert spaces to underscores to match database format
+      const dbChurchName = churchName.replace(/ /g, "_");
       const { data, error } = await supabase
         .from("individuals")
         .select("*")
-        .eq("church_name", churchName);
-      if (error) console.error(error);
-      else setIndividuals(data);
+        .eq("church_name", dbChurchName);
+      if (error) {
+        console.error("Error fetching individuals:", error);
+        setIndividuals([]);
+      } else {
+        setIndividuals(data || []);
+      }
       setIndividualsLoading(false);
     }
     getIndividuals();
   }, [churchName]);
 
   const shoeboxFieldName = `shoebox_${SHOEBOX_YEAR}`;
+
+  const handleEditShoebox = () => {
+    setIsEditingShoebox(true);
+    setShoeboxEditValue(church[shoeboxFieldName] || "");
+  };
+
+  const handleCancelEditShoebox = () => {
+    setIsEditingShoebox(false);
+    setShoeboxEditValue("");
+  };
+
+  const handleSaveShoebox = async () => {
+    if (!church) return;
+    
+    setSavingShoebox(true);
+    const numericValue = shoeboxEditValue === "" ? null : parseInt(shoeboxEditValue, 10);
+    
+    if (shoeboxEditValue !== "" && isNaN(numericValue)) {
+      alert("Please enter a valid number or leave blank.");
+      setSavingShoebox(false);
+      return;
+    }
+
+    // Convert spaces to underscores to match database format
+    const dbChurchName = church.church_name.replace(/ /g, "_");
+    const { error } = await supabase
+      .from("church")
+      .update({ [shoeboxFieldName]: numericValue })
+      .eq("church_name", dbChurchName);
+
+    if (error) {
+      console.error("Error updating shoebox count:", error);
+      alert("Failed to update shoebox count. Please try again.");
+    } else {
+      // Update local state
+      setChurch({ ...church, [shoeboxFieldName]: numericValue });
+      setIsEditingShoebox(false);
+      setShoeboxEditValue("");
+    }
+    setSavingShoebox(false);
+  };
 
   const handleAddNote = async () => {
     if (!newNote.trim() || !church || !currentTeamMember) return;
@@ -106,18 +190,41 @@ export default function ChurchPage() {
       alert("Failed to add note. Please try again.");
     } else {
       setNewNote("");
-      // Refresh notes
+      // Refresh notes using the same logic as getNotes
       const { data: notesData, error: fetchError } = await supabase
         .from("notes")
-        .select(`
-          *,
-          team_members!added_by_team_member_id(first_name, last_name)
-        `)
+        .select("*")
         .eq("church_id", church.id)
         .order("created_at", { ascending: false });
       
       if (!fetchError && notesData) {
-        setNotes(notesData);
+        // Fetch team member names if we have notes
+        if (notesData.length > 0) {
+          const memberIds = [...new Set(notesData.map(n => n.added_by_team_member_id).filter(Boolean))];
+          if (memberIds.length > 0) {
+            const { data: membersData } = await supabase
+              .from("team_members")
+              .select("id, first_name, last_name")
+              .in("id", memberIds);
+            
+            const membersMap = {};
+            if (membersData) {
+              membersData.forEach(m => {
+                membersMap[m.id] = m;
+              });
+            }
+            
+            const notesWithMembers = notesData.map(note => ({
+              ...note,
+              team_members: membersMap[note.added_by_team_member_id] || null
+            }));
+            setNotes(notesWithMembers);
+          } else {
+            setNotes(notesData);
+          }
+        } else {
+          setNotes([]);
+        }
       }
     }
   };
@@ -134,7 +241,37 @@ export default function ChurchPage() {
           <p className="text-gray-700 mb-2">{church.physical_city}, {church.physical_state}</p>
           <p className="text-gray-700 mb-2">{church.physical_county} County</p>
           <p className="text-gray-700 mb-2">Zip: {church.physical_zip}</p>
-          {church[shoeboxFieldName] !== undefined && <p className="text-gray-700 mb-2">Shoebox {SHOEBOX_YEAR}: {church[shoeboxFieldName]}</p>}
+          <div className="text-gray-700 mb-2 flex items-center gap-2">
+            <span>Shoebox {SHOEBOX_YEAR}:</span>
+            {isEditingShoebox ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={shoeboxEditValue}
+                  onChange={(e) => setShoeboxEditValue(e.target.value)}
+                  className="w-24 border rounded-md p-1 text-center"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveShoebox}
+                  disabled={savingShoebox}
+                  className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
+                >
+                  {savingShoebox ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={handleCancelEditShoebox}
+                  disabled={savingShoebox}
+                  className="bg-gray-300 text-black px-3 py-1 rounded text-sm hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <span>{church[shoeboxFieldName] !== undefined && church[shoeboxFieldName] !== null ? church[shoeboxFieldName] : "N/A"}</span>
+            )}
+          </div>
         </div>
 
         {/* Right side - Notes Section */}
@@ -210,12 +347,14 @@ export default function ChurchPage() {
       </div>
 
       <div className="mt-4 flex gap-2">
-        <button
-          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
-          onClick={() => navigate(`/edit-shoebox-count/${encodeURIComponent(church.church_name)}`)}
-        >
-          Edit Shoebox Count
-        </button>
+        {!isEditingShoebox && (
+          <button
+            className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+            onClick={handleEditShoebox}
+          >
+            Edit Shoebox Count
+          </button>
+        )}
       </div>
 
       <h2 className="text-2xl font-semibold mt-8 mb-4">Individuals</h2>

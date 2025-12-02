@@ -15,10 +15,12 @@ export default function EditShoeboxCount() {
 
     useEffect(() => {
         const fetchChurch = async () => {
+            // Convert spaces to underscores to match database format
+            const dbChurchName = churchName.replace(/ /g, "_");
             const { data, error } = await supabase
                 .from("church")
                 .select(`church_name, ${shoeboxFieldName}`)
-                .eq("church_name", churchName)
+                .eq("church_name", dbChurchName)
                 .single();
 
             if (error) {
@@ -54,16 +56,18 @@ export default function EditShoeboxCount() {
             [shoeboxFieldName]: numericValue,
         };
 
+        // Convert spaces to underscores to match database format
+        const dbChurchName = churchName.replace(/ /g, "_");
         const { error: updateError } = await supabase
             .from("church")
             .update(updatePayload)
-            .eq("church_name", churchName);
+            .eq("church_name", dbChurchName);
 
         if (updateError) {
             console.error(updateError);
             setError("Error updating shoebox count.");
         } else {
-            navigate(`/church/${churchName}`);
+            navigate(`/church/${encodeURIComponent(churchName)}`);
         }
 
         setLoading(false);
