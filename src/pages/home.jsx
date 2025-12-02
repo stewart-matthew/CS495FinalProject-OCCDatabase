@@ -100,8 +100,8 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {churches.map((church) => (
-                                <tr key={church.church_name}>
+                            {churches.map((church, index) => (
+                                <tr key={church.id || church.church_name || `church-${index}`}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{church.church_name.replace(/_/g, " ")}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-28">
                                         <input
@@ -139,16 +139,19 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
 }
 
 export default function Home() {
+    // Get current year dynamically
+    const currentYear = new Date().getFullYear();
+    
     const [churches, setChurches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filters, setFilters] = useState({
         churchName: "",
         zipcode: "",
-        shoebox_2025: "",
+        shoeboxMin: "",
         sortBy: "",
         selectedCounties: [],
-        selectedYear: 2025,
+        selectedYear: currentYear,
     });
     const navigate = useNavigate();
 
@@ -166,7 +169,7 @@ export default function Home() {
         }
         if (filterValues.zipcode) query = query.eq("physical_zip", filterValues.zipcode);
         const shoeboxField = `shoebox_${filterValues.selectedYear}`;
-        if (filterValues.shoebox_2025) query = query.gte(shoeboxField, filterValues.shoebox_2025);
+        if (filterValues.shoeboxMin) query = query.gte(shoeboxField, filterValues.shoeboxMin);
         if (filterValues.selectedCounties.length > 0) query = query.in("physical_county", filterValues.selectedCounties);
 
         const { data, error } = await query;
@@ -276,8 +279,8 @@ export default function Home() {
                     <input
                         type="number"
                         placeholder={`Minimum shoebox ${filters.selectedYear}`}
-                        value={filters.shoebox_2025}
-                        onChange={(e) => setFilters({ ...filters, shoebox_2025: e.target.value })}
+                        value={filters.shoeboxMin}
+                        onChange={(e) => setFilters({ ...filters, shoeboxMin: e.target.value })}
                         className="border p-2 rounded w-full md:w-1/3"
                     />
                 </div>
@@ -293,7 +296,7 @@ export default function Home() {
                     <button
                         className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
                         onClick={() => {
-                            const clearedFilters = { churchName: "", zipcode: "", shoebox_2025: "", sortBy: "", selectedCounties: [], selectedYear: 2025 };
+                            const clearedFilters = { churchName: "", zipcode: "", shoeboxMin: "", sortBy: "", selectedCounties: [], selectedYear: currentYear };
                             setFilters(clearedFilters);
                             getChurches(clearedFilters);
                         }}
@@ -315,9 +318,9 @@ export default function Home() {
                                 }}
                                 className="border p-2 rounded"
                             >
-                                <option value="2023">2023</option>
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
+                                {Array.from({ length: currentYear - 2022 }, (_, i) => 2023 + i).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
                             </select>
                         </div>
                         <div>
@@ -344,8 +347,8 @@ export default function Home() {
 
             {/* Church Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {churches.map((church) => (
-                    <div key={church.church_name} className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between">
+                {churches.map((church, index) => (
+                    <div key={church.id || church.church_name || `church-card-${index}`} className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between">
                         <div>
                             <h2 className="text-xl font-bold mb-2">{church.church_name.replace(/_/g, " ")}</h2>
                             <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>

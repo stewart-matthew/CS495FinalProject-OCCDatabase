@@ -59,6 +59,9 @@ export default function Profile() {
     const [myChurches, setMyChurches] = useState([]);
     const [notesLoading, setNotesLoading] = useState(false);
     const [churchesLoading, setChurchesLoading] = useState(false);
+    const [editingNoteId, setEditingNoteId] = useState(null);
+    const [editingNoteContent, setEditingNoteContent] = useState("");
+    const [savingNote, setSavingNote] = useState(false);
 
     const navigate = useNavigate();
 
@@ -107,7 +110,8 @@ export default function Profile() {
             if (!memberData?.id) return;
 
             setNotesLoading(true);
-            const { data: notesData, error } = await supabase
+            // Try with foreign key join first
+            let { data: notesData, error } = await supabase
                 .from("notes")
                 .select(`
           *,
@@ -116,11 +120,45 @@ export default function Profile() {
                 .eq("added_by_team_member_id", memberData.id)
                 .order("created_at", { ascending: false });
 
+            // If that fails, try without join
             if (error) {
-                console.error("Error fetching notes:", error);
-            } else {
-                setMyNotes(notesData || []);
+                console.error("Error fetching notes with join:", error);
+                const { data: simpleData, error: simpleError } = await supabase
+                    .from("notes")
+                    .select("*")
+                    .eq("added_by_team_member_id", memberData.id)
+                    .order("created_at", { ascending: false });
+                
+                if (simpleError) {
+                    console.error("Error fetching notes:", simpleError);
+                    setMyNotes([]);
+                } else {
+                    // Fetch church names separately
+                    if (simpleData && simpleData.length > 0) {
+                        const churchIds = [...new Set(simpleData.map(n => n.church_id).filter(Boolean))];
+                        const { data: churchesData } = await supabase
+                            .from("church")
+                            .select("id, church_name")
+                            .in("id", churchIds);
+                        
+                        const churchesMap = {};
+                        if (churchesData) {
+                            churchesData.forEach(c => {
+                                churchesMap[c.id] = c;
+                            });
+                        }
+                        
+                        notesData = simpleData.map(note => ({
+                            ...note,
+                            church: churchesMap[note.church_id] || null
+                        }));
+                    } else {
+                        notesData = [];
+                    }
+                }
             }
+
+            setMyNotes(notesData || []);
             setNotesLoading(false);
         }
         getMyNotes();
@@ -132,7 +170,7 @@ export default function Profile() {
             if (!memberData?.id) return;
 
             setChurchesLoading(true);
-            const currentYear = 2025; // You can make this dynamic if needed
+            const currentYear = new Date().getFullYear(); // Automatically updates when year changes
             const relationsField = `relations_member_${currentYear}`;
 
             const { data: churchesData, error } = await supabase
@@ -150,6 +188,93 @@ export default function Profile() {
         }
         getMyChurches();
     }, [memberData]);
+
+    const handleEditNote = (note) => {
+        console.log("Edit note clicked:", note.id);
+        setEditingNoteId(note.id);
+        setEditingNoteContent(note.content);
+    };
+
+    const handleCancelEditNote = () => {
+        setEditingNoteId(null);
+        setEditingNoteContent("");
+    };
+
+    const handleSaveNote = async (noteId) => {
+        console.log("Save note clicked:", noteId);
+        if (!editingNoteContent.trim()) {
+            alert("Note content cannot be empty.");
+            return;
+        }
+
+        if (!memberData?.id) {
+            alert("Error: User information not available.");
+            return;
+        }
+
+        setSavingNote(true);
+        console.log("Updating note:", noteId, "with content:", editingNoteContent.trim());
+
+        const { data, error } = await supabase
+            .from("notes")
+            .update({ content: editingNoteContent.trim() })
+            .eq("id", noteId)
+            .select();
+
+        console.log("Update response - data:", data);
+        console.log("Update response - error:", error);
+
+        if (error) {
+            console.error("Error updating note:", error);
+            alert(`Failed to update note: ${error.message}`);
+        } else {
+            if (data && data.length > 0) {
+                console.log("Note updated successfully");
+                setMyNotes(prev => prev.map(note => 
+                    note.id === noteId 
+                        ? { ...note, ...data[0] }
+                        : note
+                ));
+                setEditingNoteId(null);
+                setEditingNoteContent("");
+            } else {
+                console.error("Update returned empty data - RLS policy likely blocked the update");
+                alert("Failed to update note: The update was blocked. Please check your RLS policies.");
+            }
+        }
+        setSavingNote(false);
+    };
+
+    const handleDeleteNote = async (noteId) => {
+        console.log("Delete note clicked:", noteId);
+        if (!window.confirm("Are you sure you want to delete this note?")) {
+            return;
+        }
+
+        console.log("Deleting note:", noteId);
+        const { data, error } = await supabase
+            .from("notes")
+            .delete()
+            .eq("id", noteId)
+            .select();
+
+        console.log("Delete response - data:", data);
+        console.log("Delete response - error:", error);
+
+        if (error) {
+            console.error("Error deleting note:", error);
+            alert(`Failed to delete note: ${error.message}`);
+        } else {
+            // Check if anything was actually deleted
+            if (data && data.length > 0) {
+                console.log("Note deleted successfully, removed from UI");
+                setMyNotes(prev => prev.filter(note => note.id !== noteId));
+            } else {
+                console.error("Delete returned empty data - RLS policy likely blocked the delete");
+                alert("Failed to delete note: The delete was blocked. Please check your RLS policies.");
+            }
+        }
+    };
 
     const fetchMyTeam = async () => {
         if (!memberData) return;
@@ -388,24 +513,93 @@ export default function Profile() {
                                     ? note.church.church_name.replace(/_/g, " ")
                                     : "Unknown Church";
 
+                                const isEditing = editingNoteId === note.id;
+
                                 return (
                                     <div key={note.id} className="bg-gray-50 p-3 rounded border">
-                                        <p className="text-sm text-gray-600 mb-1">
-                                            <strong>Church:</strong>{" "}
-                                            {note.church_id && note.church?.church_name ? (
-                                                <button
-                                                    onClick={() => navigate(`/church/${encodeURIComponent(note.church.church_name)}`)}
-                                                    className="text-blue-600 hover:underline"
-                                                >
-                                                    {churchName}
-                                                </button>
-                                            ) : (
-                                                churchName
-                                            )}
-                                            {" - "}
-                                            {noteDate}
-                                        </p>
-                                        <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <p className="text-sm text-gray-600">
+                                                <strong>Church:</strong>{" "}
+                                                {note.church_id && note.church?.church_name ? (
+                                                    <button
+                                                        onClick={() => navigate(`/church/${encodeURIComponent(note.church.church_name)}`)}
+                                                        className="text-blue-600 hover:underline"
+                                                    >
+                                                        {churchName}
+                                                    </button>
+                                                ) : (
+                                                    churchName
+                                                )}
+                                                {" - "}
+                                                {noteDate}
+                                            </p>
+                                            <div className="flex gap-2">
+                                                {!isEditing && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleEditNote(note);
+                                                            }}
+                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleDeleteNote(note.id);
+                                                            }}
+                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {isEditing ? (
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={editingNoteContent}
+                                                    onChange={(e) => setEditingNoteContent(e.target.value)}
+                                                    className="w-full border rounded-md p-2 min-h-[80px]"
+                                                    disabled={savingNote}
+                                                />
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            handleSaveNote(note.id);
+                                                        }}
+                                                        disabled={savingNote}
+                                                        className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
+                                                    >
+                                                        {savingNote ? "Saving..." : "Save"}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            handleCancelEditNote();
+                                                        }}
+                                                        disabled={savingNote}
+                                                        className="bg-gray-300 text-black px-3 py-1 rounded text-sm hover:bg-gray-400"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                                        )}
                                     </div>
                                 );
                             })}

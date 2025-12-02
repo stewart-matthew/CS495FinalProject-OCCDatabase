@@ -10,15 +10,18 @@ export default function EditShoeboxCount() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const SHOEBOX_UPDATE_YEAR = 2025;
+    // Get current year dynamically - automatically switches to 2026 when the year changes
+    const SHOEBOX_UPDATE_YEAR = new Date().getFullYear();
     const shoeboxFieldName = `shoebox_${SHOEBOX_UPDATE_YEAR}`;
 
     useEffect(() => {
         const fetchChurch = async () => {
+            // Convert spaces to underscores to match database format
+            const dbChurchName = churchName.replace(/ /g, "_");
             const { data, error } = await supabase
                 .from("church")
                 .select(`church_name, ${shoeboxFieldName}`)
-                .eq("church_name", churchName)
+                .eq("church_name", dbChurchName)
                 .single();
 
             if (error) {
@@ -54,16 +57,18 @@ export default function EditShoeboxCount() {
             [shoeboxFieldName]: numericValue,
         };
 
+        // Convert spaces to underscores to match database format
+        const dbChurchName = churchName.replace(/ /g, "_");
         const { error: updateError } = await supabase
             .from("church")
             .update(updatePayload)
-            .eq("church_name", churchName);
+            .eq("church_name", dbChurchName);
 
         if (updateError) {
             console.error(updateError);
             setError("Error updating shoebox count.");
         } else {
-            navigate(`/church/${churchName}`);
+            navigate(`/church/${encodeURIComponent(churchName)}`);
         }
 
         setLoading(false);
