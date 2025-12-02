@@ -156,6 +156,7 @@ export default function EditChurch() {
                     placeholder="Church Name"
                     className="w-full border rounded-lg p-2"
                     required
+                    maxLength={200}
                 />
                 <input
                     name="physical_address"
@@ -163,6 +164,7 @@ export default function EditChurch() {
                     onChange={handleChange}
                     placeholder="Physical Address"
                     className="w-full border rounded-lg p-2"
+                    maxLength={200}
                 />
                 <div className="grid grid-cols-2 gap-4">
                     <input
@@ -171,6 +173,7 @@ export default function EditChurch() {
                         onChange={handleChange}
                         placeholder="City"
                         className="border rounded-lg p-2"
+                        maxLength={100}
                     />
                     <input
                         name="physical_state"
@@ -178,6 +181,7 @@ export default function EditChurch() {
                         onChange={handleChange}
                         placeholder="State"
                         className="border rounded-lg p-2"
+                        maxLength={2}
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -187,6 +191,7 @@ export default function EditChurch() {
                         onChange={handleChange}
                         placeholder="ZIP Code"
                         className="border rounded-lg p-2"
+                        maxLength={10}
                     />
                     <input
                         name="physical_county"
@@ -194,6 +199,7 @@ export default function EditChurch() {
                         onChange={handleChange}
                         placeholder="County"
                         className="border rounded-lg p-2"
+                        maxLength={100}
                     />
                 </div>
                 <input
@@ -224,6 +230,7 @@ export default function EditChurch() {
                     onChange={handleChange}
                     placeholder="Church Contact Email"
                     className="w-full border rounded-lg p-2"
+                    maxLength={100}
                 />
                 <textarea
                     name="notes"
@@ -232,6 +239,7 @@ export default function EditChurch() {
                     placeholder="Notes"
                     className="w-full border rounded-lg p-2"
                     rows="3"
+                    maxLength={2000}
                 ></textarea>
 
                 <button

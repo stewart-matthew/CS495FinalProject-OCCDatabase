@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { validatePhoneNumber } from "../utils/validation";
 
 export default function AddMember() {
   const navigate = useNavigate();
@@ -33,12 +34,48 @@ export default function AddMember() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    // Apply character limits based on field type
+    const maxLengths = {
+      first_name: 50,
+      last_name: 50,
+      email: 100,
+      phone_number: 20,
+      alt_phone_number: 20,
+      home_address: 200,
+      home_city: 100,
+      home_state: 2,
+      home_zip: 10,
+      home_county: 100,
+      shirt_size: 10,
+      church_affiliation_name: 200,
+      church_affiliation_city: 100,
+      church_affiliation_state: 2,
+      church_affiliation_county: 100,
+    };
+    
+    const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
+    setForm({ ...form, [name]: processedValue });
   };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Client-side file type validation
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).');
+      e.target.value = ''; // Clear the input
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setError('File size too large. Please upload an image smaller than 5MB.');
+      e.target.value = ''; // Clear the input
+      return;
+    }
 
     setUploading(true);
     setError("");
@@ -57,15 +94,17 @@ export default function AddMember() {
         .from('member-images')
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Upload failed. Please try again.');
+      }
 
       // Update form with file path
       setForm(prev => ({ ...prev, photo_url: fileName }));
 
     } catch (error) {
-      console.error('Upload error:', error);
-      setError('Failed to upload photo: ' + error.message);
+      setError(error.message || 'Failed to upload photo. Please try again.');
       setPhotoPreview("");
+      e.target.value = ''; // Clear the input on error
     } finally {
       setUploading(false);
     }
@@ -76,12 +115,24 @@ export default function AddMember() {
     setLoading(true);
     setError("");
 
+    // Validate phone numbers
+    if (form.phone_number && !validatePhoneNumber(form.phone_number)) {
+      setError("Please enter a valid phone number (10 digits).");
+      setLoading(false);
+      return;
+    }
+    
+    if (form.alt_phone_number && !validatePhoneNumber(form.alt_phone_number)) {
+      setError("Please enter a valid alternate phone number (10 digits).");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.from("team_members").insert([
       { ...form },
     ]);
 
     if (error) {
-      console.error(error);
       setError(error.message);
     } else {
       navigate("/profile");
@@ -137,11 +188,29 @@ export default function AddMember() {
                 {field.replaceAll("_", " ")}
               </label>
               <input
-                type={field === "date_of_birth" ? "date" : "text"}
+                type={field === "date_of_birth" ? "date" : field === "email" ? "email" : "text"}
                 name={field}
                 value={form[field]}
                 onChange={handleChange}
                 className="w-full border rounded-md px-3 py-2"
+                maxLength={
+                  field === "first_name" ? 50 :
+                  field === "last_name" ? 50 :
+                  field === "email" ? 100 :
+                  field === "phone_number" ? 20 :
+                  field === "alt_phone_number" ? 20 :
+                  field === "home_address" ? 200 :
+                  field === "home_city" ? 100 :
+                  field === "home_state" ? 2 :
+                  field === "home_zip" ? 10 :
+                  field === "home_county" ? 100 :
+                  field === "shirt_size" ? 10 :
+                  field === "church_affiliation_name" ? 200 :
+                  field === "church_affiliation_city" ? 100 :
+                  field === "church_affiliation_state" ? 2 :
+                  field === "church_affiliation_county" ? 100 :
+                  undefined
+                }
               />
             </div>
           ))}

@@ -192,6 +192,7 @@ export default function EditProfile() {
                     value={formData.first_name || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={50}
                 />
                 <input
                     name="last_name"
@@ -199,6 +200,7 @@ export default function EditProfile() {
                     value={formData.last_name || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={50}
                 />
                 <input
                     name="phone_number"
@@ -220,6 +222,7 @@ export default function EditProfile() {
                     value={formData.home_address || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={200}
                 />
                 <input
                     name="home_city"
@@ -227,6 +230,7 @@ export default function EditProfile() {
                     value={formData.home_city || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={100}
                 />
                 <input
                     name="home_state"
@@ -234,6 +238,7 @@ export default function EditProfile() {
                     value={formData.home_state || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={2}
                 />
                 <input
                     name="home_zip"
@@ -241,6 +246,7 @@ export default function EditProfile() {
                     value={formData.home_zip || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={10}
                 />
                 <input
                     name="home_county"
@@ -248,6 +254,7 @@ export default function EditProfile() {
                     value={formData.home_county || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={100}
                 />
                 <input
                     name="shirt_size"
@@ -255,6 +262,7 @@ export default function EditProfile() {
                     value={formData.shirt_size || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={10}
                 />
                 <input
                     name="member_notes"
@@ -262,6 +270,7 @@ export default function EditProfile() {
                     value={formData.member_notes || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={1000}
                 />
                 <button
                     type="submit"

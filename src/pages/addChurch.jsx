@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { validatePhoneNumber } from "../utils/validation";
 
 export default function AddChurch() {
   const navigate = useNavigate();
@@ -23,14 +24,46 @@ export default function AddChurch() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Apply character limits
+    const maxLengths = {
+      church_name: 200,
+      physical_address: 200,
+      physical_city: 100,
+      physical_state: 2,
+      physical_zip: 10,
+      physical_county: 100,
+      phone_number: 20,
+      church_contact: 100,
+      church_contact_phone: 20,
+      church_contact_email: 100,
+    };
+    
+    const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Client-side file type validation
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).');
+      e.target.value = ''; // Clear the input
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setError('File size too large. Please upload an image smaller than 5MB.');
+      e.target.value = ''; // Clear the input
+      return;
+    }
+
     setUploading(true);
+    setError(null);
     
     try {
       const fileExt = file.name.split('.').pop();
@@ -41,17 +74,19 @@ export default function AddChurch() {
         .from('church-photos')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Upload failed. Please try again.');
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('church-photos')
         .getPublicUrl(filePath);
 
       setFormData((prev) => ({ ...prev, photo_url: publicUrl }));
-      setUploading(false);
     } catch (err) {
-      console.error('Upload error:', err);
-      setError('Failed to upload photo. Please try again.');
+      setError(err.message || 'Failed to upload photo. Please try again.');
+      e.target.value = ''; // Clear the input on error
+    } finally {
       setUploading(false);
     }
   };
@@ -61,7 +96,20 @@ export default function AddChurch() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.from("church").insert([
+    // Validate phone numbers
+    if (formData.phone_number && !validatePhoneNumber(formData.phone_number)) {
+      setError("Please enter a valid phone number (10 digits).");
+      setLoading(false);
+      return;
+    }
+    
+    if (formData.church_contact_phone && !validatePhoneNumber(formData.church_contact_phone)) {
+      setError("Please enter a valid church contact phone number (10 digits).");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from("church2").insert([
       {
         ...formData,
         created_at: new Date().toISOString(),
@@ -82,7 +130,6 @@ export default function AddChurch() {
     setLoading(false);
 
     if (error) {
-      console.error(error);
       setError("Error adding church. Please try again.");
     } else {
       navigate("/home");
@@ -102,6 +149,7 @@ export default function AddChurch() {
           placeholder="Church Name"
           required
           className="w-full border rounded-lg p-2"
+          maxLength={200}
         />
         <input
           name="physical_address"
@@ -109,6 +157,7 @@ export default function AddChurch() {
           onChange={handleChange}
           placeholder="Physical Address"
           className="w-full border rounded-lg p-2"
+          maxLength={200}
         />
         <div className="grid grid-cols-2 gap-4">
           <input
@@ -117,6 +166,7 @@ export default function AddChurch() {
             onChange={handleChange}
             placeholder="City"
             className="border rounded-lg p-2"
+            maxLength={100}
           />
           <input
             name="physical_state"
@@ -124,6 +174,7 @@ export default function AddChurch() {
             onChange={handleChange}
             placeholder="State"
             className="border rounded-lg p-2"
+            maxLength={2}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -133,6 +184,7 @@ export default function AddChurch() {
             onChange={handleChange}
             placeholder="ZIP Code"
             className="border rounded-lg p-2"
+            maxLength={10}
           />
           <input
             name="physical_county"
@@ -140,6 +192,7 @@ export default function AddChurch() {
             onChange={handleChange}
             placeholder="County"
             className="border rounded-lg p-2"
+            maxLength={100}
           />
         </div>
         <input
@@ -148,6 +201,7 @@ export default function AddChurch() {
           onChange={handleChange}
           placeholder="Phone Number"
           className="w-full border rounded-lg p-2"
+          maxLength={20}
         />
         <input
           name="church_contact"
@@ -155,6 +209,7 @@ export default function AddChurch() {
           onChange={handleChange}
           placeholder="Church Contact Name"
           className="w-full border rounded-lg p-2"
+          maxLength={100}
         />
         <input
           name="church_contact_phone"
@@ -162,6 +217,7 @@ export default function AddChurch() {
           onChange={handleChange}
           placeholder="Church Contact Phone"
           className="w-full border rounded-lg p-2"
+          maxLength={20}
         />
         <input
           name="church_contact_email"
@@ -170,6 +226,7 @@ export default function AddChurch() {
           onChange={handleChange}
           placeholder="Church Contact Email"
           className="w-full border rounded-lg p-2"
+          maxLength={100}
         />
         
         {/* Photo Upload Section */}
