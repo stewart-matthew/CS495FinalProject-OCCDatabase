@@ -238,7 +238,7 @@ export default function Home() {
     if (churches.length === 0) return <p>No churches found.</p>;
 
     return (
-        <div className="max-w-6xl mx-auto mt-10">
+        <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0">
             <UpdateShoeboxModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

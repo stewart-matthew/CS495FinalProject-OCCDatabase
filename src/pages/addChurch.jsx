@@ -182,7 +182,7 @@ export default function AddChurch() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded-2xl shadow">
+    <div className="max-w-2xl mx-auto mt-10 bg-white p-4 md:p-6 rounded-2xl shadow">
       <h1 className="text-2xl font-bold mb-4 text-center">Add Church</h1>
       {error && <p className="text-red-500 text-center mb-3">{error}</p>}
 
@@ -204,7 +204,7 @@ export default function AddChurch() {
           className="w-full border rounded-lg p-2"
           maxLength={200}
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             name="physical_city"
             value={formData.physical_city}
@@ -224,7 +224,7 @@ export default function AddChurch() {
             maxLength={2}
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             name="physical_zip"
             value={formData.physical_zip}

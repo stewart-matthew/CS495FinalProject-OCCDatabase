@@ -154,7 +154,7 @@ export default function AddMember() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+    <div className="max-w-4xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-4 md:p-6">
       <h1 className="text-2xl font-bold mb-6">Add New Member</h1>
 
       {error && <p className="text-red-600 mb-3">{error}</p>}
@@ -188,7 +188,7 @@ export default function AddMember() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {formFields.map((field) => (
             <div key={field} className="col-span-1">
               <label className="block text-sm font-medium mb-1 capitalize">

@@ -404,7 +404,7 @@ export default function Profile() {
     };
 
     return (
-        <div className="max-w-xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+        <div className="max-w-xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-4 md:p-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold mb-4">Profile</h1>
                 <div className="flex gap-2">

@@ -84,13 +84,13 @@ export default function AddIndividual() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded-2xl shadow">
+    <div className="max-w-2xl mx-auto mt-10 bg-white p-4 md:p-6 rounded-2xl shadow">
       <h1 className="text-2xl font-bold mb-4 text-center">Add Individual</h1>
       {error && <p className="text-red-500 text-center mb-3">{error}</p>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Basic Information */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             name="first_name"
             value={formData.first_name}
@@ -118,7 +118,7 @@ export default function AddIndividual() {
           className="w-full border rounded-lg p-2"
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
             name="church_name"
             value={formData.church_name}
@@ -157,7 +157,7 @@ export default function AddIndividual() {
         {/* Resource Checkboxes */}
         <div>
           <label className="block text-sm font-medium mb-2">Resources Requested:</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"

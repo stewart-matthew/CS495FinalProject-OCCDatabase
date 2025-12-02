@@ -292,7 +292,7 @@ export default function EditMember() {
     if (loading || !form) return <p className="text-center mt-10">Loading...</p>;
 
     return (
-        <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+        <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-4 md:p-6">
             <h1 className="text-2xl font-bold mb-6">Edit Member</h1>
 
             {error && <p className="text-red-600 mb-3">{error}</p>}
@@ -315,7 +315,7 @@ export default function EditMember() {
                 {uploading && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
             </div>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.keys(form).map((field) =>
                     ["id", "created_at", "updated_at", "admin_flag", "photo_url", "position"].includes(field)
                         ? null

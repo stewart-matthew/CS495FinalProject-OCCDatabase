@@ -252,7 +252,7 @@ export default function Individuals() {
     if (loading) return <p className="text-center mt-10">Loading individuals...</p>;
 
     return (
-        <div className="max-w-6xl mx-auto mt-10">
+        <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Individuals</h1>
                 {isAdmin && (

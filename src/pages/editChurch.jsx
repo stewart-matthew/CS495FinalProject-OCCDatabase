@@ -190,7 +190,7 @@ export default function EditChurch() {
     if (!formData) return <p className="text-center mt-10">Loading...</p>;
 
     return (
-        <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+        <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-4 md:p-6">
             <h1 className="text-2xl font-bold mb-6">Edit Church</h1>
             
             {error && <p className="text-red-600 mb-3 p-3 bg-red-50 rounded">{error}</p>}

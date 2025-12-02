@@ -433,7 +433,7 @@ export default function ChurchPage() {
   if (!church) return <p>Church not found.</p>;
 
   return (
-    <div className="max-w-6xl mx-auto mt-10">
+    <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Left side - Church Info */}
         <div className="space-y-4">

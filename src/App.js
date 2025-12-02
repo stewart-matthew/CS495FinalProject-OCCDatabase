@@ -25,7 +25,7 @@ function App() {
       <div className="min-h-screen bg-gray-100">
         <Navbar />
 
-        <div className="pt-20">
+        <div className="pt-16 md:pt-20">
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
