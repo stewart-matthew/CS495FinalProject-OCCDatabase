@@ -37,6 +37,8 @@ export default function TeamMemberPage() {
     const { id } = useParams();
     const [member, setMember] = useState(null);
     const [church, setChurch] = useState(null);
+    const [projectLeaderChurches, setProjectLeaderChurches] = useState([]);
+    const [churchesLoading, setChurchesLoading] = useState(true);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -78,6 +80,30 @@ export default function TeamMemberPage() {
 
         getMember();
     }, [id]);
+
+    // Fetch churches where this team member is the project leader
+    useEffect(() => {
+        async function getProjectLeaderChurches() {
+            if (!member) return;
+
+            setChurchesLoading(true);
+            const userFullName = `${member.first_name} ${member.last_name}`;
+
+            const { data: churchesData, error } = await supabase
+                .from("church2")
+                .select("id, church_name, physical_city, physical_state, physical_county")
+                .eq("project_leader", userFullName)
+                .order("church_name", { ascending: true });
+
+            if (error) {
+                console.error("Error fetching project leader churches:", error);
+            } else {
+                setProjectLeaderChurches(churchesData || []);
+            }
+            setChurchesLoading(false);
+        }
+        getProjectLeaderChurches();
+    }, [member]);
 
     if (loading) return <p className="text-center mt-10">Loading team member...</p>;
     if (!member) return <p className="text-center mt-10">Team member not found.</p>;
@@ -169,6 +195,46 @@ export default function TeamMemberPage() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Project Leader Churches Section */}
+            <div className="mt-8 bg-gray-50 p-4 rounded-lg">
+                <h2 className="text-xl font-semibold mb-4">Churches as Project Leader</h2>
+                
+                {churchesLoading ? (
+                    <p className="text-gray-500">Loading churches...</p>
+                ) : projectLeaderChurches.length === 0 ? (
+                    <p className="text-gray-500">Not the project leader for any churches.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {projectLeaderChurches.map((church) => (
+                            <div key={church.id} className="bg-white p-4 rounded border">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-medium text-gray-900">
+                                            <button
+                                                onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
+                                                className="text-blue-600 hover:underline"
+                                            >
+                                                {church.church_name?.replace(/_/g, " ") || "Unknown"}
+                                            </button>
+                                        </p>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {church.physical_city}, {church.physical_state}
+                                            {church.physical_county && ` - ${church.physical_county} County`}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                    >
+                                        View Church
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
