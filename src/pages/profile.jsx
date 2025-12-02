@@ -170,7 +170,7 @@ export default function Profile() {
             if (!memberData?.id) return;
 
             setChurchesLoading(true);
-            const currentYear = 2025; // You can make this dynamic if needed
+            const currentYear = new Date().getFullYear(); // Automatically updates when year changes
             const relationsField = `relations_member_${currentYear}`;
 
             const { data: churchesData, error } = await supabase

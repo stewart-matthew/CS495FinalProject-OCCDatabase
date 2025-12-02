@@ -10,7 +10,8 @@ export default function EditShoeboxCount() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const SHOEBOX_UPDATE_YEAR = 2025;
+    // Get current year dynamically - automatically switches to 2026 when the year changes
+    const SHOEBOX_UPDATE_YEAR = new Date().getFullYear();
     const shoeboxFieldName = `shoebox_${SHOEBOX_UPDATE_YEAR}`;
 
     useEffect(() => {

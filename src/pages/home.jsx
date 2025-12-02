@@ -139,16 +139,19 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
 }
 
 export default function Home() {
+    // Get current year dynamically
+    const currentYear = new Date().getFullYear();
+    
     const [churches, setChurches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filters, setFilters] = useState({
         churchName: "",
         zipcode: "",
-        shoebox_2025: "",
+        shoeboxMin: "",
         sortBy: "",
         selectedCounties: [],
-        selectedYear: 2025,
+        selectedYear: currentYear,
     });
     const navigate = useNavigate();
 
@@ -166,7 +169,7 @@ export default function Home() {
         }
         if (filterValues.zipcode) query = query.eq("physical_zip", filterValues.zipcode);
         const shoeboxField = `shoebox_${filterValues.selectedYear}`;
-        if (filterValues.shoebox_2025) query = query.gte(shoeboxField, filterValues.shoebox_2025);
+        if (filterValues.shoeboxMin) query = query.gte(shoeboxField, filterValues.shoeboxMin);
         if (filterValues.selectedCounties.length > 0) query = query.in("physical_county", filterValues.selectedCounties);
 
         const { data, error } = await query;
@@ -276,8 +279,8 @@ export default function Home() {
                     <input
                         type="number"
                         placeholder={`Minimum shoebox ${filters.selectedYear}`}
-                        value={filters.shoebox_2025}
-                        onChange={(e) => setFilters({ ...filters, shoebox_2025: e.target.value })}
+                        value={filters.shoeboxMin}
+                        onChange={(e) => setFilters({ ...filters, shoeboxMin: e.target.value })}
                         className="border p-2 rounded w-full md:w-1/3"
                     />
                 </div>
@@ -293,7 +296,7 @@ export default function Home() {
                     <button
                         className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
                         onClick={() => {
-                            const clearedFilters = { churchName: "", zipcode: "", shoebox_2025: "", sortBy: "", selectedCounties: [], selectedYear: 2025 };
+                            const clearedFilters = { churchName: "", zipcode: "", shoeboxMin: "", sortBy: "", selectedCounties: [], selectedYear: currentYear };
                             setFilters(clearedFilters);
                             getChurches(clearedFilters);
                         }}
@@ -315,9 +318,9 @@ export default function Home() {
                                 }}
                                 className="border p-2 rounded"
                             >
-                                <option value="2023">2023</option>
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
+                                {Array.from({ length: currentYear - 2022 }, (_, i) => 2023 + i).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
                             </select>
                         </div>
                         <div>

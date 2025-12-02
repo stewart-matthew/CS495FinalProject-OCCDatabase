@@ -18,7 +18,8 @@ export default function ChurchPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   
-  const SHOEBOX_YEAR = 2025; 
+  // Get current year dynamically - automatically switches to 2026 when the year changes
+  const SHOEBOX_YEAR = new Date().getFullYear(); 
 
   useEffect(() => {
     async function getChurch() {
