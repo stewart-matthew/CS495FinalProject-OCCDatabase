@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 export default function Individuals() {
@@ -10,6 +11,7 @@ export default function Individuals() {
     const [expandedRow, setExpandedRow] = useState(null);
     const [editingIndividual, setEditingIndividual] = useState(null);
     const [savingIndividual, setSavingIndividual] = useState(false);
+    const navigate = useNavigate();
     
     // Filter states
     const [filters, setFilters] = useState({
@@ -255,7 +257,17 @@ export default function Individuals() {
 
     return (
         <div className="max-w-6xl mx-auto mt-10">
-            <h1 className="text-3xl font-bold mb-6">Individuals</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Individuals</h1>
+                {isAdmin && (
+                    <button
+                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        onClick={() => navigate("/add-individual")}
+                    >
+                        Add Individual
+                    </button>
+                )}
+            </div>
 
             {/* Filters Section */}
             <div className="bg-gray-100 p-4 rounded-lg mb-6">

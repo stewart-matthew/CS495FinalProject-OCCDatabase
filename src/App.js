@@ -15,6 +15,7 @@ import AddChurch from "./pages/addChurch";
 import EditChurch from "./pages/editChurch";
 import TeamMember from "./pages/teamMember";
 import Individuals from "./pages/individuals";
+import AddIndividual from "./pages/addIndividual";
 import ForgotPassword from "./pages/forgotPassword";
 import ResetPassword from "./pages/resetPassword";
 
@@ -52,6 +53,7 @@ function App() {
                     <Route path="/edit-member/:id" element={<EditMember />} />
                     <Route path="/add-church" element={<AddChurch />} />
                     <Route path="/edit-church/:churchName" element={<EditChurch />} />
+                    <Route path="/add-individual" element={<AddIndividual />} />
 
                     {/* Redirect unknown paths */}
                     <Route path="*" element={<Navigate to="/" replace />} />
