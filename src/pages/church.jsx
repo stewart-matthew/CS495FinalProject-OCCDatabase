@@ -2,40 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
-// Helper component for private bucket images - CHURCH VERSION
-function PrivateBucketImage({ filePath, className }) {
-    const [signedUrl, setSignedUrl] = useState(null);
-
-    useEffect(() => {
-        const getSignedUrl = async () => {
-            if (!filePath) return;
-
-            // If it's already a full URL (legacy), use it
-            if (filePath.startsWith('http')) {
-                setSignedUrl(filePath);
-                return;
-            }
-
-            // Generate signed URL for church bucket
-            const { data } = await supabase.storage
-                .from('Church Images')
-                .createSignedUrl(filePath, 3600); // 1 hour expiry
-
-            if (data) {
-                setSignedUrl(data.signedUrl);
-            }
-        };
-
-        getSignedUrl();
-    }, [filePath]);
-
-    if (!signedUrl) {
-        return <div className={`bg-gray-200 flex items-center justify-center ${className}`}>Loading...</div>;
-    }
-
-    return <img src={signedUrl} alt="Church" className={className} />;
-}
-
 export default function ChurchPage() {
   const { churchName } = useParams();
   const [searchParams] = useSearchParams();
@@ -191,10 +157,10 @@ export default function ChurchPage() {
     getIndividuals();
   }, [churchName]);
 
-  const shoeboxYears = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const shoeboxYears = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019];
 
   const handleEditShoebox = () => {
-    if (!church) return;
+    if (!church || !isAdmin) return;
     const values = {};
     shoeboxYears.forEach(year => {
       const fieldName = `shoebox_${year}`;
@@ -214,7 +180,7 @@ export default function ChurchPage() {
   };
 
   const handleSaveShoebox = async () => {
-    if (!church) return;
+    if (!church || !isAdmin) return;
     
     setSavingShoebox(true);
     
@@ -468,13 +434,6 @@ export default function ChurchPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10">
-      {/* Church Photo */}
-      {church.photo_url && (
-        <div className="mb-6 flex justify-center">
-          <PrivateBucketImage filePath={church.photo_url} className="w-64 h-48 object-cover rounded-lg" />
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Left side - Church Info */}
         <div className="space-y-4">
@@ -495,7 +454,7 @@ export default function ChurchPage() {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-semibold text-gray-800">Shoebox Counts</h2>
-                {!isEditingShoebox && (
+                {!isEditingShoebox && isAdmin && (
                   <button
                     onClick={handleEditShoebox}
                     className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"

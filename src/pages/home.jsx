@@ -38,10 +38,17 @@ function PrivateBucketImage({ filePath, className }) {
     return <img src={signedUrl} alt="Church" className={className} />;
 }
 
-function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refreshChurches }) {
+function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refreshChurches, isAdmin }) {
     const [updates, setUpdates] = useState({});
     const [loading, setLoading] = useState(false);
     const shoeboxYear = shoeboxFieldName.split('_')[1];
+
+    // If not admin, close modal immediately
+    useEffect(() => {
+        if (isOpen && !isAdmin) {
+            onClose();
+        }
+    }, [isOpen, isAdmin, onClose]);
 
     useEffect(() => {
         if (isOpen) {
@@ -61,6 +68,10 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
     };
 
     const handleSubmit = async () => {
+        if (!isAdmin) {
+            onClose();
+            return;
+        }
         setLoading(true);
         const updatesToRun = [];
 
@@ -145,6 +156,7 @@ export default function Home() {
     const [churches, setChurches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [filters, setFilters] = useState({
         churchName: "",
         zipcode: "",
@@ -201,6 +213,22 @@ export default function Home() {
     };
 
     useEffect(() => {
+        const checkAdminStatus = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: memberData } = await supabase
+                    .from("team_members")
+                    .select("admin_flag")
+                    .eq("id", user.id)
+                    .single();
+                
+                setIsAdmin(memberData?.admin_flag === true || memberData?.admin_flag === "true");
+            }
+        };
+        checkAdminStatus();
+    }, []);
+
+    useEffect(() => {
         getChurches();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -217,15 +245,18 @@ export default function Home() {
                 churches={churches}
                 shoeboxFieldName={modalShoeboxField}
                 refreshChurches={() => getChurches()}
+                isAdmin={isAdmin}
             />
             
             <div className="flex justify-between items-center mb-6">
-                <button
-                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                    onClick={() => setIsModalOpen(true)}
-                >
-                    Update  {filters.selectedYear} Shoebox Counts
-                </button>
+                {isAdmin && (
+                    <button
+                        className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                        onClick={() => setIsModalOpen(true)}
+                    >
+                        Update  {filters.selectedYear} Shoebox Counts
+                    </button>
+                )}
 
                 {/* Add Church Button */}
                 <div className="flex justify-end">

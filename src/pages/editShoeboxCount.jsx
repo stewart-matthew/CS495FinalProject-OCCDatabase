@@ -9,12 +9,42 @@ export default function EditShoeboxCount() {
     const [churchData, setChurchData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [checkingAdmin, setCheckingAdmin] = useState(true);
 
     // Get current year dynamically - automatically switches to 2026 when the year changes
     const SHOEBOX_UPDATE_YEAR = new Date().getFullYear();
     const shoeboxFieldName = `shoebox_${SHOEBOX_UPDATE_YEAR}`;
 
     useEffect(() => {
+        const checkAdminStatus = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                navigate("/");
+                return;
+            }
+
+            const { data: memberData } = await supabase
+                .from("team_members")
+                .select("admin_flag")
+                .eq("id", user.id)
+                .single();
+
+            const adminStatus = memberData?.admin_flag === true || memberData?.admin_flag === "true";
+            setIsAdmin(adminStatus);
+            setCheckingAdmin(false);
+
+            if (!adminStatus) {
+                navigate(`/church/${encodeURIComponent(churchName)}`);
+            }
+        };
+
+        checkAdminStatus();
+    }, [churchName, navigate]);
+
+    useEffect(() => {
+        if (!isAdmin || checkingAdmin) return;
+
         const fetchChurch = async () => {
             // Convert spaces to underscores to match database format
             const dbChurchName = churchName.replace(/ /g, "_");
@@ -33,7 +63,7 @@ export default function EditShoeboxCount() {
         };
 
         fetchChurch();
-    }, [churchName, shoeboxFieldName]);
+    }, [churchName, shoeboxFieldName, isAdmin, checkingAdmin]);
 
     const handleChange = (e) => {
         setShoeboxCount(e.target.value);
@@ -41,6 +71,10 @@ export default function EditShoeboxCount() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!isAdmin) {
+            navigate(`/church/${encodeURIComponent(churchName)}`);
+            return;
+        }
         setLoading(true);
         setError(null);
 
@@ -72,6 +106,7 @@ export default function EditShoeboxCount() {
         setLoading(false);
     };
 
+    if (checkingAdmin || !isAdmin) return <p className="text-center mt-10">Loading...</p>;
     if (!churchData) return <p className="text-center mt-10">Loading...</p>;
 
     return (
