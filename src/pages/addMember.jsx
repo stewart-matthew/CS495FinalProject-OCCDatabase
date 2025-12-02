@@ -207,8 +207,8 @@ export default function AddMember() {
                   <option value="M">M</option>
                   <option value="L">L</option>
                   <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                  <option value="XXXL">XXXL</option>
+                  <option value="2XL">2XL</option>
+                  <option value="3XL">3XL</option>
                 </select>
               ) : (
                 <input
