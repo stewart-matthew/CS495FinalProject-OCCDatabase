@@ -115,7 +115,7 @@ export default function Profile() {
                 .from("notes")
                 .select(`
           *,
-          church!notes_church_fkey(church_name)
+          church2!notes_church_fkey(church_name)
         `)
                 .eq("added_by_team_member_id", memberData.id)
                 .order("created_at", { ascending: false });
@@ -137,7 +137,7 @@ export default function Profile() {
                     if (simpleData && simpleData.length > 0) {
                         const churchIds = [...new Set(simpleData.map(n => n.church_id).filter(Boolean))];
                         const { data: churchesData } = await supabase
-                            .from("church")
+                            .from("church2")
                             .select("id, church_name")
                             .in("id", churchIds);
                         
@@ -174,7 +174,7 @@ export default function Profile() {
             const relationsField = `relations_member_${currentYear}`;
 
             const { data: churchesData, error } = await supabase
-                .from("church")
+                .from("church2")
                 .select("id, church_name, physical_city, physical_state")
                 .eq(relationsField, memberData.id)
                 .order("church_name", { ascending: true });

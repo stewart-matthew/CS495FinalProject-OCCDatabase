@@ -26,7 +26,7 @@ export default function ChurchPage() {
       // Convert spaces to underscores to match database format
       const dbChurchName = churchName.replace(/ /g, "_");
       const { data, error } = await supabase
-        .from("church")
+        .from("church2")
         .select("*")
         .eq("church_name", dbChurchName)
         .single();
@@ -132,7 +132,7 @@ export default function ChurchPage() {
     // Convert spaces to underscores to match database format
     const dbChurchName = church.church_name.replace(/ /g, "_");
     const { error } = await supabase
-      .from("church")
+      .from("church2")
       .update({ [shoeboxFieldName]: numericValue })
       .eq("church_name", dbChurchName);
 

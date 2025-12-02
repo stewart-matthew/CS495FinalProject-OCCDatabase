@@ -72,7 +72,7 @@ function UpdateShoeboxModal({ isOpen, onClose, churches, shoeboxFieldName, refre
                 const updatePayload = { [shoeboxFieldName]: newValue };
                 updatesToRun.push(
                     supabase
-                        .from("church")
+                        .from("church2")
                         .update(updatePayload)
                         .eq("church_name", church.church_name)
                 );
@@ -161,7 +161,7 @@ export default function Home() {
     // Fetch churches with optional filters
     async function getChurches(filterValues = filters) {
         setLoading(true);
-        let query = supabase.from("church").select("*");
+        let query = supabase.from("church2").select("*");
 
         if (filterValues.churchName) {
             const searchValue = filterValues.churchName.replace(/ /g, "_");

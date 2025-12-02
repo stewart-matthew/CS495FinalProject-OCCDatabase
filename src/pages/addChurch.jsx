@@ -30,7 +30,7 @@ export default function AddChurch() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.from("church").insert([
+    const { error } = await supabase.from("church2").insert([
       {
         ...formData,
         created_at: new Date().toISOString(),

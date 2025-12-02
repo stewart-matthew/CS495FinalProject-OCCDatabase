@@ -19,7 +19,7 @@ export default function EditShoeboxCount() {
             // Convert spaces to underscores to match database format
             const dbChurchName = churchName.replace(/ /g, "_");
             const { data, error } = await supabase
-                .from("church")
+                .from("church2")
                 .select(`church_name, ${shoeboxFieldName}`)
                 .eq("church_name", dbChurchName)
                 .single();
@@ -60,7 +60,7 @@ export default function EditShoeboxCount() {
         // Convert spaces to underscores to match database format
         const dbChurchName = churchName.replace(/ /g, "_");
         const { error: updateError } = await supabase
-            .from("church")
+            .from("church2")
             .update(updatePayload)
             .eq("church_name", dbChurchName);
 

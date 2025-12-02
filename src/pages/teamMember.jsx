@@ -63,7 +63,7 @@ export default function TeamMemberPage() {
             // Fetch church if there's a church affiliation
             if (memberData.church_affiliation_name) {
                 const { data: churchData, error: churchError } = await supabase
-                    .from("church")
+                    .from("church2")
                     .select("church_name, physical_city, physical_state, phone_number, physical_zip")
                     .eq("church_name", memberData.church_affiliation_name)
                     .single();

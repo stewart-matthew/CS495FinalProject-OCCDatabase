@@ -48,7 +48,7 @@ export default function EditChurch() {
     useEffect(() => {
         const fetchChurch = async () => {
             const { data, error } = await supabase
-                .from("church")
+                .from("church2")
                 .select("*")
                 .eq("church_name", churchName)
                 .single();
@@ -107,7 +107,7 @@ export default function EditChurch() {
         setError(null);
 
         const { error } = await supabase
-            .from("church")
+            .from("church2")
             .update({
                 ...formData,
             })
