@@ -71,22 +71,22 @@ export default function AddChurch() {
     
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `church-photos/${fileName}`;
+      // Use church name or timestamp for unique filename
+      const churchName = formData.church_name || 'new-church';
+      const fileName = `${churchName}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
+      // Upload to the correct bucket: 'Church Images' (same as editChurch)
       const { error: uploadError } = await supabase.storage
-        .from('church-photos')
-        .upload(filePath, file);
+        .from('Church Images')
+        .upload(fileName, file);
 
       if (uploadError) {
         throw new Error(uploadError.message || 'Upload failed. Please try again.');
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('church-photos')
-        .getPublicUrl(filePath);
-
-      setFormData((prev) => ({ ...prev, photo_url: publicUrl }));
+      // Store the file path (just the filename) - same as editChurch
+      setFormData((prev) => ({ ...prev, photo_url: fileName }));
+      
     } catch (err) {
       setError(err.message || 'Failed to upload photo. Please try again.');
       e.target.value = ''; // Clear the input on error
@@ -313,11 +313,10 @@ export default function AddChurch() {
           {formData.photo_url && !uploading && (
             <div className="mt-2">
               <p className="text-green-500 text-sm">✓ Photo uploaded successfully</p>
-              <img 
-                src={formData.photo_url} 
-                alt="Preview" 
-                className="mt-2 w-32 h-32 object-cover rounded-lg"
-              />
+              {/* Simple placeholder instead of image preview */}
+              <div className="mt-2 w-32 h-32 bg-gray-200 flex items-center justify-center rounded-lg">
+                <span className="text-gray-500 text-sm">Photo uploaded</span>
+              </div>
             </div>
           )}
         </div>
