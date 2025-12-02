@@ -415,14 +415,94 @@ export default function Profile() {
                         </div>
                     )}
 
-                    <p><strong>Email:</strong> {user.email}</p>
-                    <p><strong>Name:</strong> {memberData.first_name} {memberData.last_name}</p>
-                    <div className="mt-2">
-                        <strong>Position{positions.length !== 1 ? "s" : ""}:</strong>{" "}
-                        {positions.length === 0 ? "Currently no positions assigned to user." : (
-                            <ul className="list-disc ml-6">
-                                {positions.map((p, i) => (<li key={i}>{p}</li>))}
-                            </ul>
+                    <div className="space-y-4">
+                        {/* Basic Information */}
+                        <div>
+                            <h2 className="text-lg font-semibold mb-2">Basic Information</h2>
+                            <div className="space-y-1 text-gray-700">
+                                <p><strong>Name:</strong> {memberData.first_name} {memberData.last_name}</p>
+                                <p><strong>Email:</strong> {memberData.email || user.email || "N/A"}</p>
+                                <p><strong>Phone:</strong> {memberData.phone_number || "N/A"}</p>
+                                {memberData.alt_phone_number && (
+                                    <p><strong>Alt Phone:</strong> {memberData.alt_phone_number}</p>
+                                )}
+                                <p><strong>Active Status:</strong> {memberData.active ? "Active" : "Inactive"}</p>
+                            </div>
+                        </div>
+
+                        {/* Positions */}
+                        <div>
+                            <h2 className="text-lg font-semibold mb-2">Position{positions.length !== 1 ? "s" : ""}</h2>
+                            {positions.length === 0 ? (
+                                <p className="text-gray-600">Currently no positions assigned to user.</p>
+                            ) : (
+                                <ul className="list-disc ml-6">
+                                    {positions.map((p, i) => (<li key={i}>{p}</li>))}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* Home Address */}
+                        {(memberData.home_address || memberData.home_city || memberData.home_state || memberData.home_zip || memberData.home_county) && (
+                            <div>
+                                <h2 className="text-lg font-semibold mb-2">Home Address</h2>
+                                <p className="text-gray-700">
+                                    {[
+                                        memberData.home_address,
+                                        memberData.home_city,
+                                        memberData.home_state,
+                                        memberData.home_zip
+                                    ].filter(Boolean).join(", ")}
+                                    {memberData.home_county && ` - ${memberData.home_county} County`}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Personal Information */}
+                        {(memberData.date_of_birth || memberData.shirt_size) && (
+                            <div>
+                                <h2 className="text-lg font-semibold mb-2">Personal Information</h2>
+                                <div className="space-y-1 text-gray-700">
+                                    {memberData.date_of_birth && (
+                                        <p><strong>Date of Birth:</strong> {new Date(memberData.date_of_birth).toLocaleDateString()}</p>
+                                    )}
+                                    {memberData.shirt_size && (
+                                        <p><strong>Shirt Size:</strong> {memberData.shirt_size}</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Church Affiliation */}
+                        {(memberData.church_affiliation_name || memberData.church_affiliation_city || memberData.church_affiliation_state || memberData.church_affiliation_county) && (
+                            <div>
+                                <h2 className="text-lg font-semibold mb-2">Church Affiliation</h2>
+                                <div className="space-y-1 text-gray-700">
+                                    {memberData.church_affiliation_name && (
+                                        <p><strong>Church Name:</strong> {memberData.church_affiliation_name.replace(/_/g, " ")}</p>
+                                    )}
+                                    {(memberData.church_affiliation_city || memberData.church_affiliation_state || memberData.church_affiliation_county) && (
+                                        <p>
+                                            <strong>Location:</strong>{" "}
+                                            {[
+                                                memberData.church_affiliation_city,
+                                                memberData.church_affiliation_state
+                                            ].filter(Boolean).join(", ")}
+                                            {memberData.church_affiliation_county && ` - ${memberData.church_affiliation_county} County`}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Member Notes */}
+                        {memberData.member_notes && (
+                            <div>
+                                <h2 className="text-lg font-semibold mb-2">Member Notes</h2>
+                                <div className="bg-gray-50 p-3 rounded border text-gray-700 whitespace-pre-wrap">
+                                    {memberData.member_notes}
+                                </div>
+                            </div>
                         )}
                     </div>
 

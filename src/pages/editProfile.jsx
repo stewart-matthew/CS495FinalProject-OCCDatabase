@@ -39,7 +39,6 @@ function PrivateBucketImage({ filePath, className }) {
 }
 
 export default function EditProfile() {
-    const [user, setUser] = useState(null);
     const [formData, setFormData] = useState({});
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -54,7 +53,6 @@ export default function EditProfile() {
                     navigate("/login");
                     return;
                 }
-                setUser(authUser);
 
                 const { data: member, error: memberError } = await supabase
                     .from("team_members")
@@ -210,127 +208,255 @@ export default function EditProfile() {
         }
     };
 
-    if (loading) return <p>Loading profile...</p>;
+    if (loading) return <p className="text-center mt-10">Loading profile...</p>;
 
     return (
-        <div className="max-w-xl mx-auto mt-10 bg-white p-6 shadow rounded">
+        <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
             <h1 className="text-2xl font-bold mb-6">Edit Profile</h1>
 
-            {error && <p className="text-red-600 mb-3">{error}</p>}
+            {error && <p className="text-red-600 mb-3 p-3 bg-red-50 rounded">{error}</p>}
 
-            {/*Photo Upload*/}
-            <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Profile Photo</label>
-                {formData.photo_url && (
-                    <div className="mb-3 flex justify-center">
-                        <PrivateBucketImage filePath={formData.photo_url} className="w-32 h-32 object-cover rounded-full" />
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Photo Upload Section */}
+                <div className="border-b pb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label>
+                    {formData.photo_url && (
+                        <div className="mb-3 flex justify-center">
+                            <PrivateBucketImage filePath={formData.photo_url} className="w-32 h-32 object-cover rounded-full" />
+                        </div>
+                    )}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        disabled={uploading}
+                        className="w-full border rounded-md px-3 py-2"
+                    />
+                    {uploading && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
+                </div>
+
+                {/* Basic Information Section */}
+                <div className="border-b pb-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input
+                                name="first_name"
+                                value={formData.first_name || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={50}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input
+                                name="last_name"
+                                value={formData.last_name || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={50}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input
+                                name="phone_number"
+                                value={formData.phone_number || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={20}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Phone</label>
+                            <input
+                                name="alt_phone_number"
+                                value={formData.alt_phone_number || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={20}
+                            />
+                        </div>
                     </div>
-                )}
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    disabled={uploading}
-                    className="w-full border rounded-md px-3 py-2"
-                />
-                {uploading && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
-            </div>
+                </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                    name="first_name"
-                    placeholder="First Name"
-                    value={formData.first_name || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={50}
-                />
-                <input
-                    name="last_name"
-                    placeholder="Last Name"
-                    value={formData.last_name || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={50}
-                />
-                <input
-                    name="phone_number"
-                    placeholder="Phone Number"
-                    value={formData.phone_number || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={20}
-                />
-                <input
-                    name="alt_phone_number"
-                    placeholder="Alternate Phone"
-                    value={formData.alt_phone_number || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={20}
-                />
-                <input
-                    name="home_address"
-                    placeholder="Home Address"
-                    value={formData.home_address || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={200}
-                />
-                <input
-                    name="home_city"
-                    placeholder="Home City"
-                    value={formData.home_city || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={100}
-                />
-                <input
-                    name="home_state"
-                    placeholder="Home State"
-                    value={formData.home_state || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={2}
-                />
-                <input
-                    name="home_zip"
-                    placeholder="Home ZIP"
-                    value={formData.home_zip || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={10}
-                />
-                <input
-                    name="home_county"
-                    placeholder="Home County"
-                    value={formData.home_county || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={100}
-                />
-                <input
-                    name="shirt_size"
-                    placeholder="Shirt Size"
-                    value={formData.shirt_size || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={10}
-                />
-                <input
-                    name="member_notes"
-                    placeholder="Member Notes"
-                    value={formData.member_notes || ""}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
-                    maxLength={1000}
-                />
-                <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {loading ? "Saving..." : "Save Changes"}
-                </button>
+                {/* Home Address Section */}
+                <div className="border-b pb-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Home Address</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                            <input
+                                name="home_address"
+                                value={formData.home_address || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={200}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input
+                                    name="home_city"
+                                    value={formData.home_city || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={100}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                                <input
+                                    name="home_state"
+                                    value={formData.home_state || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={2}
+                                    placeholder="e.g., AL"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+                                <input
+                                    name="home_zip"
+                                    value={formData.home_zip || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={10}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">County</label>
+                                <input
+                                    name="home_county"
+                                    value={formData.home_county || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={100}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Personal Information Section */}
+                <div className="border-b pb-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                            <input
+                                type="date"
+                                name="date_of_birth"
+                                value={formData.date_of_birth || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Shirt Size</label>
+                            <input
+                                name="shirt_size"
+                                value={formData.shirt_size || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={10}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Church Affiliation Section */}
+                <div className="border-b pb-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Church Affiliation</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Church Name</label>
+                            <input
+                                name="church_affiliation_name"
+                                value={formData.church_affiliation_name || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={200}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input
+                                    name="church_affiliation_city"
+                                    value={formData.church_affiliation_city || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={100}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                                <input
+                                    name="church_affiliation_state"
+                                    value={formData.church_affiliation_state || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={2}
+                                    placeholder="e.g., AL"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">County</label>
+                            <input
+                                name="church_affiliation_county"
+                                value={formData.church_affiliation_county || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={100}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Member Notes Section */}
+                <div className="pb-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Member Notes</h2>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea
+                            name="member_notes"
+                            value={formData.member_notes || ""}
+                            onChange={handleChange}
+                            className="w-full border rounded-md px-3 py-2"
+                            rows="4"
+                            maxLength={1000}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {(formData.member_notes || "").length} / 1000 characters
+                        </p>
+                    </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex gap-3 pt-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/profile")}
+                        className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+                    >
+                        {loading ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
             </form>
         </div>
     );
