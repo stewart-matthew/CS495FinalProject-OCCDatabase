@@ -1,9 +1,44 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+
+// Helper component for private bucket images - CHURCH VERSION
+function PrivateBucketImage({ filePath, className }) {
+    const [signedUrl, setSignedUrl] = useState(null);
+
+    useEffect(() => {
+        const getSignedUrl = async () => {
+            if (!filePath) return;
+
+            // If it's already a full URL (legacy), use it
+            if (filePath.startsWith('http')) {
+                setSignedUrl(filePath);
+                return;
+            }
+
+            // Generate signed URL for church bucket
+            const { data } = await supabase.storage
+                .from('Church Images')
+                .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+            if (data) {
+                setSignedUrl(data.signedUrl);
+            }
+        };
+
+        getSignedUrl();
+    }, [filePath]);
+
+    if (!signedUrl) {
+        return <div className={`bg-gray-200 flex items-center justify-center ${className}`}>Loading...</div>;
+    }
+
+    return <img src={signedUrl} alt="Church" className={className} />;
+}
 
 export default function ChurchPage() {
   const { churchName } = useParams();
+  const [searchParams] = useSearchParams();
   const [church, setChurch] = useState(null);
   const [individuals, setIndividuals] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -13,7 +48,7 @@ export default function ChurchPage() {
   const [individualsLoading, setIndividualsLoading] = useState(true);
   const [notesLoading, setNotesLoading] = useState(true);
   const [isEditingShoebox, setIsEditingShoebox] = useState(false);
-  const [shoeboxEditValue, setShoeboxEditValue] = useState("");
+  const [shoeboxEditValues, setShoeboxEditValues] = useState({});
   const [savingShoebox, setSavingShoebox] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -36,20 +71,42 @@ export default function ChurchPage() {
     async function getChurch() {
       // Convert spaces to underscores to match database format
       const dbChurchName = churchName.replace(/ /g, "_");
-      const { data, error } = await supabase
+      const city = searchParams.get("city");
+      
+      let query = supabase
         .from("church2")
         .select("*")
-        .eq("church_name", dbChurchName)
-        .single();
+        .eq("church_name", dbChurchName);
+      
+      // If city is provided in query params, filter by city to get the exact match
+      if (city) {
+        query = query.ilike("physical_city", `%${city}%`);
+      }
+      
+      const { data, error } = await query.maybeSingle();
+      
       if (error) {
         // Error fetching church
-      } else {
+      } else if (data) {
         setChurch(data);
+      } else {
+        // If no match with city, try without city filter (fallback)
+        if (city) {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("church2")
+            .select("*")
+            .eq("church_name", dbChurchName)
+            .maybeSingle();
+          
+          if (!fallbackError && fallbackData) {
+            setChurch(fallbackData);
+          }
+        }
       }
       setLoading(false);
     }
     getChurch();
-  }, [churchName]);
+  }, [churchName, searchParams]);
 
   // Fetch current team member
   useEffect(() => {
@@ -134,44 +191,64 @@ export default function ChurchPage() {
     getIndividuals();
   }, [churchName]);
 
-  const shoeboxFieldName = `shoebox_${SHOEBOX_YEAR}`;
+  const shoeboxYears = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
 
   const handleEditShoebox = () => {
+    if (!church) return;
+    const values = {};
+    shoeboxYears.forEach(year => {
+      const fieldName = `shoebox_${year}`;
+      values[year] = church[fieldName] !== undefined && church[fieldName] !== null ? church[fieldName].toString() : "";
+    });
+    setShoeboxEditValues(values);
     setIsEditingShoebox(true);
-    setShoeboxEditValue(church[shoeboxFieldName] || "");
   };
 
   const handleCancelEditShoebox = () => {
     setIsEditingShoebox(false);
-    setShoeboxEditValue("");
+    setShoeboxEditValues({});
+  };
+
+  const handleShoeboxValueChange = (year, value) => {
+    setShoeboxEditValues({ ...shoeboxEditValues, [year]: value });
   };
 
   const handleSaveShoebox = async () => {
     if (!church) return;
     
     setSavingShoebox(true);
-    const numericValue = shoeboxEditValue === "" ? null : parseInt(shoeboxEditValue, 10);
     
-    if (shoeboxEditValue !== "" && isNaN(numericValue)) {
-      alert("Please enter a valid number or leave blank.");
-      setSavingShoebox(false);
-      return;
+    // Validate all values
+    const updateData = {};
+    for (const year of shoeboxYears) {
+      const value = shoeboxEditValues[year];
+      if (value === "" || value === null || value === undefined) {
+        updateData[`shoebox_${year}`] = null;
+      } else {
+        const numericValue = parseInt(value, 10);
+        if (isNaN(numericValue)) {
+          alert(`Please enter a valid number for year ${year} or leave blank.`);
+          setSavingShoebox(false);
+          return;
+        }
+        updateData[`shoebox_${year}`] = numericValue;
+      }
     }
 
     // Convert spaces to underscores to match database format
     const dbChurchName = church.church_name.replace(/ /g, "_");
     const { error } = await supabase
       .from("church2")
-      .update({ [shoeboxFieldName]: numericValue })
+      .update(updateData)
       .eq("church_name", dbChurchName);
 
     if (error) {
-      alert("Failed to update shoebox count. Please try again.");
+      alert("Failed to update shoebox counts. Please try again.");
     } else {
       // Update local state
-      setChurch({ ...church, [shoeboxFieldName]: numericValue });
+      setChurch({ ...church, ...updateData });
       setIsEditingShoebox(false);
-      setShoeboxEditValue("");
+      setShoeboxEditValues({});
     }
     setSavingShoebox(false);
   };
@@ -391,13 +468,163 @@ export default function ChurchPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10">
+      {/* Church Photo */}
+      {church.photo_url && (
+        <div className="mb-6 flex justify-center">
+          <PrivateBucketImage filePath={church.photo_url} className="w-64 h-48 object-cover rounded-lg" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Left side - Church Info */}
-        <div>
-          <h1 className="text-3xl font-bold mb-4">{church.church_name.replace(/_/g, " ")}</h1>
-          <p className="text-gray-700 mb-2">{church.physical_city}, {church.physical_state}</p>
-          <p className="text-gray-700 mb-2">{church.physical_county} County</p>
-          <p className="text-gray-700 mb-2">Zip: {church.physical_zip}</p>
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-4">{church.church_name.replace(/_/g, " ")}</h1>
+            
+            {/* Basic Contact Information */}
+            <div className="space-y-2 text-gray-700 mb-4">
+              {church.phone_number && (
+                <p><strong>Phone:</strong> {church.phone_number}</p>
+              )}
+              {church.first_name && church.last_name && (
+                <p><strong>Contact Person:</strong> {church.first_name} {church.last_name}</p>
+              )}
+            </div>
+
+            {/* Shoebox Counts Section */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-gray-800">Shoebox Counts</h2>
+                {!isEditingShoebox && (
+                  <button
+                    onClick={handleEditShoebox}
+                    className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                  >
+                    Edit Shoebox Counts
+                  </button>
+                )}
+              </div>
+              {isEditingShoebox ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {shoeboxYears.map((year) => (
+                      <div key={year} className="flex flex-col">
+                        <label className="text-sm text-gray-600 mb-1">{year}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={shoeboxEditValues[year] || ""}
+                          onChange={(e) => handleShoeboxValueChange(year, e.target.value)}
+                          placeholder="0"
+                          className="w-full border rounded-md p-2 text-center"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      onClick={handleSaveShoebox}
+                      disabled={savingShoebox}
+                      className="bg-green-500 text-white px-4 py-2 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
+                    >
+                      {savingShoebox ? "Saving..." : "Save All"}
+                    </button>
+                    <button
+                      onClick={handleCancelEditShoebox}
+                      disabled={savingShoebox}
+                      className="bg-gray-300 text-black px-4 py-2 rounded text-sm hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {shoeboxYears.map((year) => {
+                    const fieldName = `shoebox_${year}`;
+                    const value = church[fieldName];
+                    return (
+                      <div key={year} className="bg-gray-50 p-2 rounded border">
+                        <div className="text-xs text-gray-500 mb-1">{year}</div>
+                        <div className="text-lg font-semibold text-gray-800">
+                          {value !== undefined && value !== null ? value : "N/A"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Physical Address */}
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">Physical Address</h2>
+              <div className="space-y-1 text-gray-700">
+                {church.physical_address && (
+                  <p>{church.physical_address}</p>
+                )}
+                <p>
+                  {[
+                    church.physical_city,
+                    church.physical_state,
+                    church.physical_zip
+                  ].filter(Boolean).join(", ")}
+                </p>
+                {church.physical_county && (
+                  <p>{church.physical_county} County</p>
+                )}
+              </div>
+            </div>
+
+            {/* Mailing Address (if different) */}
+            {(church.mailing_address || church.mailing_address2) && (
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">Mailing Address</h2>
+                <div className="space-y-1 text-gray-700">
+                  {church.mailing_address && <p>{church.mailing_address}</p>}
+                  {church.mailing_address2 && <p>{church.mailing_address2}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Church Contact Information */}
+            {(church.church_contact || church.church_contact_phone || church.church_contact_email) && (
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">Church Contact</h2>
+                <div className="space-y-1 text-gray-700">
+                  {church.church_contact && (
+                    <p><strong>Contact Name:</strong> {church.church_contact}</p>
+                  )}
+                  {church.church_contact_phone && (
+                    <p><strong>Contact Phone:</strong> {church.church_contact_phone}</p>
+                  )}
+                  {church.church_contact_email && (
+                    <p><strong>Contact Email:</strong> {church.church_contact_email}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Notes */}
+            {church.notes && (
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">Notes</h2>
+                <div className="bg-gray-50 p-3 rounded border text-gray-700 whitespace-pre-wrap">
+                  {church.notes}
+                </div>
+              </div>
+            )}
+
+            {/* Created Date */}
+            {church.created_at && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-500">
+                  <strong>Created:</strong> {new Date(church.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+          </div>
+          
           <div className="text-gray-700 mb-2 flex items-center gap-2">
             <span><strong>Project Leader:</strong></span>
             {isEditingProjectLeader && isAdmin ? (
@@ -497,37 +724,6 @@ export default function ChurchPage() {
                   </button>
                 )}
               </div>
-            )}
-          </div>
-          <div className="text-gray-700 mb-2 flex items-center gap-2">
-            <span>Shoebox {SHOEBOX_YEAR}:</span>
-            {isEditingShoebox ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  value={shoeboxEditValue}
-                  onChange={(e) => setShoeboxEditValue(e.target.value)}
-                  className="w-24 border rounded-md p-1 text-center"
-                  autoFocus
-                />
-                <button
-                  onClick={handleSaveShoebox}
-                  disabled={savingShoebox}
-                  className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
-                >
-                  {savingShoebox ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={handleCancelEditShoebox}
-                  disabled={savingShoebox}
-                  className="bg-gray-300 text-black px-3 py-1 rounded text-sm hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <span>{church[shoeboxFieldName] !== undefined && church[shoeboxFieldName] !== null ? church[shoeboxFieldName] : "N/A"}</span>
             )}
           </div>
         </div>
@@ -674,16 +870,6 @@ export default function ChurchPage() {
         </button>
       </div>
 
-      <div className="mt-4 flex gap-2">
-        {!isEditingShoebox && (
-          <button
-            className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
-            onClick={handleEditShoebox}
-          >
-            Edit Shoebox Count
-          </button>
-        )}
-      </div>
 
       <h2 className="text-2xl font-semibold mt-8 mb-4">Individuals</h2>
       {individualsLoading ? (

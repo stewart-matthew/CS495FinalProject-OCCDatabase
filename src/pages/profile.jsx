@@ -62,6 +62,7 @@ export default function Profile() {
     const [editingNoteId, setEditingNoteId] = useState(null);
     const [editingNoteContent, setEditingNoteContent] = useState("");
     const [savingNote, setSavingNote] = useState(false);
+    const [affiliatedChurch, setAffiliatedChurch] = useState(null);
 
     const navigate = useNavigate();
 
@@ -97,6 +98,26 @@ export default function Profile() {
                     // Remove duplicates and get unique positions
                     const uniquePositions = [...new Set(posRows.map(r => r.position).filter(Boolean))];
                     setPositions(uniquePositions);
+                }
+
+                // Fetch affiliated church by name and city to get the correct one
+                if (member.church_affiliation_name) {
+                    const dbChurchName = member.church_affiliation_name.replace(/ /g, "_");
+                    let churchQuery = supabase
+                        .from("church2")
+                        .select("id, church_name, physical_city, physical_state")
+                        .eq("church_name", dbChurchName);
+                    
+                    // If we have city info, filter by city to get the exact match
+                    if (member.church_affiliation_city) {
+                        churchQuery = churchQuery.ilike("physical_city", `%${member.church_affiliation_city}%`);
+                    }
+                    
+                    const { data: churchData, error: churchError } = await churchQuery.maybeSingle();
+                    
+                    if (!churchError && churchData) {
+                        setAffiliatedChurch(churchData);
+                    }
                 }
             } else {
                 setPositions([]); // no member found → clear positions array
@@ -479,7 +500,24 @@ export default function Profile() {
                                 <h2 className="text-lg font-semibold mb-2">Church Affiliation</h2>
                                 <div className="space-y-1 text-gray-700">
                                     {memberData.church_affiliation_name && (
-                                        <p><strong>Church Name:</strong> {memberData.church_affiliation_name.replace(/_/g, " ")}</p>
+                                        <p>
+                                            <strong>Church Name:</strong>{" "}
+                                            {affiliatedChurch ? (
+                                                <button
+                                                    onClick={() => {
+                                                        const cityParam = memberData.church_affiliation_city 
+                                                            ? `?city=${encodeURIComponent(memberData.church_affiliation_city)}`
+                                                            : '';
+                                                        navigate(`/church/${encodeURIComponent(affiliatedChurch.church_name)}${cityParam}`);
+                                                    }}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {memberData.church_affiliation_name.replace(/_/g, " ")}
+                                                </button>
+                                            ) : (
+                                                memberData.church_affiliation_name.replace(/_/g, " ")
+                                            )}
+                                        </p>
                                     )}
                                     {(memberData.church_affiliation_city || memberData.church_affiliation_state || memberData.church_affiliation_county) && (
                                         <p>
@@ -491,16 +529,6 @@ export default function Profile() {
                                             {memberData.church_affiliation_county && ` - ${memberData.church_affiliation_county} County`}
                                         </p>
                                     )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Member Notes */}
-                        {memberData.member_notes && (
-                            <div>
-                                <h2 className="text-lg font-semibold mb-2">Member Notes</h2>
-                                <div className="bg-gray-50 p-3 rounded border text-gray-700 whitespace-pre-wrap">
-                                    {memberData.member_notes}
                                 </div>
                             </div>
                         )}
