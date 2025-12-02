@@ -20,6 +20,9 @@ export default function ChurchPage() {
   const [isEditingProjectLeader, setIsEditingProjectLeader] = useState(false);
   const [selectedProjectLeader, setSelectedProjectLeader] = useState("");
   const [savingProjectLeader, setSavingProjectLeader] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editingNoteContent, setEditingNoteContent] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
   const navigate = useNavigate();
   
   // Get current year dynamically - automatically switches to 2026 when the year changes
@@ -202,6 +205,62 @@ export default function ChurchPage() {
         setNotes(notesData);
       }
     }
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNoteId(note.id);
+    setEditingNoteContent(note.content);
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditingNoteContent("");
+  };
+
+  const handleSaveNote = async (noteId) => {
+    if (!editingNoteContent.trim()) {
+      alert("Note content cannot be empty.");
+      return;
+    }
+
+    if (!currentTeamMember?.id) {
+      alert("Error: User information not available.");
+      return;
+    }
+
+    setSavingNote(true);
+
+    const { data, error } = await supabase
+      .from("notes")
+      .update({ content: editingNoteContent.trim() })
+      .eq("id", noteId)
+      .select();
+
+    if (error) {
+      console.error("Error updating note:", error);
+      alert(`Failed to update note: ${error.message}`);
+    } else {
+      if (data && data.length > 0) {
+        // Refresh notes
+        const { data: notesData, error: fetchError } = await supabase
+          .from("notes")
+          .select(`
+            *,
+            team_members!added_by_team_member_id(first_name, last_name)
+          `)
+          .eq("church_id", church.id)
+          .order("created_at", { ascending: false });
+        
+        if (!fetchError && notesData) {
+          setNotes(notesData);
+        }
+        setEditingNoteId(null);
+        setEditingNoteContent("");
+      } else {
+        alert("Failed to update note: The update was blocked. Please check your RLS policies.");
+      }
+    }
+    setSavingNote(false);
   };
 
   const handleDeleteNote = async (noteId) => {
@@ -426,27 +485,82 @@ export default function ChurchPage() {
                   minute: "2-digit",
                 });
                 
+                const isEditing = editingNoteId === note.id;
+                const isNoteOwner = currentTeamMember && note.added_by_team_member_id === currentTeamMember.id;
+                
                 return (
                   <div key={note.id} className="bg-white p-3 rounded border">
                     <div className="flex justify-between items-start mb-1">
                       <p className="text-sm text-gray-600">
                         <strong>{addedByName}</strong> - {noteDate}
                       </p>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteNote(note.id);
-                          }}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <div className="flex gap-2">
+                        {!isEditing && isNoteOwner && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleEditNote(note);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteNote(note.id);
+                            }}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingNoteContent}
+                          onChange={(e) => setEditingNoteContent(e.target.value)}
+                          className="w-full border rounded-md p-2 min-h-[80px]"
+                          disabled={savingNote}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleSaveNote(note.id);
+                            }}
+                            disabled={savingNote}
+                            className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
+                          >
+                            {savingNote ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCancelEditNote();
+                            }}
+                            disabled={savingNote}
+                            className="bg-gray-300 text-black px-3 py-1 rounded text-sm hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                    )}
                   </div>
                 );
               })}
