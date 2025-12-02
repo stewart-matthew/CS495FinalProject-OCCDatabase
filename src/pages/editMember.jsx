@@ -316,8 +316,25 @@ export default function EditMember() {
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Primary Fields - At the Top */}
+                {["first_name", "last_name", "email", "phone_number", "alt_phone_number", "home_address"].map((field) => (
+                    <div key={field} className="col-span-1">
+                        <label className="block text-sm font-medium mb-1 capitalize">
+                            {field.replaceAll("_", " ")}
+                        </label>
+                        <input
+                            type="text"
+                            name={field}
+                            value={form[field] ?? ""}
+                            onChange={handleChange}
+                            className="w-full border rounded-md px-3 py-2"
+                        />
+                    </div>
+                ))}
+
+                {/* Remaining Fields */}
                 {Object.keys(form).map((field) =>
-                    ["id", "created_at", "updated_at", "admin_flag", "photo_url", "position"].includes(field)
+                    ["id", "created_at", "updated_at", "admin_flag", "photo_url", "position", "first_name", "last_name", "email", "phone_number", "alt_phone_number", "home_address"].includes(field)
                         ? null
                         : field === "active" ? (
                             <label key={field} className="col-span-2 flex items-center gap-2">
