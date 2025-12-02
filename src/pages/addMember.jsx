@@ -22,16 +22,53 @@ export default function AddMember() {
     church_affiliation_city: "",
     church_affiliation_state: "",
     church_affiliation_county: "",
-    member_notes: "",
+    photo_url: "", // Added photo_url field
     active: true, // Always true by default — no checkbox needed
   });
 
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [photoPreview, setPhotoPreview] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+
+    try {
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setPhotoPreview(previewUrl);
+
+      // Generate unique name for the image
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      // Upload to supabase - using member-images bucket
+      const { error: uploadError } = await supabase.storage
+        .from('member-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Update form with file path
+      setForm(prev => ({ ...prev, photo_url: fileName }));
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError('Failed to upload photo: ' + error.message);
+      setPhotoPreview("");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -53,32 +90,64 @@ export default function AddMember() {
     setLoading(false);
   };
 
-  // Filter out "active" so it doesn't appear in the form fields
-  const formFields = Object.keys(form).filter((field) => field !== "active");
+  // Filter out "active" and "photo_url" so they don't appear in the regular form fields
+  const formFields = Object.keys(form).filter((field) => 
+    field !== "active" && field !== "photo_url"
+  );
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+    <div className="max-w-4xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
       <h1 className="text-2xl font-bold mb-6">Add New Member</h1>
 
       {error && <p className="text-red-600 mb-3">{error}</p>}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-        {formFields.map((field) => (
-          <div key={field} className="col-span-1">
-            <label className="block text-sm font-medium mb-1 capitalize">
-              {field.replaceAll("_", " ")}
-            </label>
-            <input
-              type={field === "date_of_birth" ? "date" : "text"}
-              name={field}
-              value={form[field]}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
+      <div className="mb-6 p-4 border rounded-lg">
+        <label className="block text-lg font-medium mb-2">Member Photo</label>
+        
+        {photoPreview && (
+          <div className="mb-3">
+            <img 
+              src={photoPreview} 
+              alt="Preview" 
+              className="w-48 h-48 object-cover rounded-lg"
             />
+            <p className="text-sm text-gray-600 mt-1">Photo preview</p>
           </div>
-        ))}
+        )}
+        
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          disabled={uploading}
+          className="w-full border rounded-md px-3 py-2"
+        />
+        
+        {uploading && <p className="text-sm text-blue-600 mt-1">Uploading photo...</p>}
+        <p className="text-sm text-gray-500 mt-1">
+          Upload a photo of the member (optional)
+        </p>
+      </div>
 
-        <div className="col-span-2 flex justify-end gap-2 mt-4">
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-2 gap-4">
+          {formFields.map((field) => (
+            <div key={field} className="col-span-1">
+              <label className="block text-sm font-medium mb-1 capitalize">
+                {field.replaceAll("_", " ")}
+              </label>
+              <input
+                type={field === "date_of_birth" ? "date" : "text"}
+                name={field}
+                value={form[field]}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="col-span-2 flex justify-end gap-2 mt-6 pt-4 border-t">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -88,8 +157,8 @@ export default function AddMember() {
           </button>
           <button
             type="submit"
-            disabled={loading}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+            disabled={loading || uploading}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300"
           >
             {loading ? "Saving..." : "Add Member"}
           </button>

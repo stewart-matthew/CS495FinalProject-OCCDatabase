@@ -15,9 +15,10 @@ export default function AddChurch() {
     church_contact: "",
     church_contact_phone: "",
     church_contact_email: "",
-    notes: "",
+    photo_url: "",
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleChange = (e) => {
@@ -25,12 +26,42 @@ export default function AddChurch() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `church-photos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('church-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('church-photos')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({ ...prev, photo_url: publicUrl }));
+      setUploading(false);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError('Failed to upload photo. Please try again.');
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.from("church2").insert([
+    const { error } = await supabase.from("church").insert([
       {
         ...formData,
         created_at: new Date().toISOString(),
@@ -140,19 +171,38 @@ export default function AddChurch() {
           placeholder="Church Contact Email"
           className="w-full border rounded-lg p-2"
         />
-        <textarea
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Notes"
-          className="w-full border rounded-lg p-2"
-          rows="3"
-        ></textarea>
+        
+        {/* Photo Upload Section */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Church Photo
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="w-full border rounded-lg p-2"
+            disabled={uploading}
+          />
+          {uploading && (
+            <p className="text-blue-500 text-sm">Uploading photo...</p>
+          )}
+          {formData.photo_url && !uploading && (
+            <div className="mt-2">
+              <p className="text-green-500 text-sm">✓ Photo uploaded successfully</p>
+              <img 
+                src={formData.photo_url} 
+                alt="Preview" 
+                className="mt-2 w-32 h-32 object-cover rounded-lg"
+              />
+            </div>
+          )}
+        </div>
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+          disabled={loading || uploading}
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
         >
           {loading ? "Adding..." : "Add Church"}
         </button>
