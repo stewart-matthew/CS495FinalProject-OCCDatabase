@@ -152,11 +152,20 @@ export default function EditChurch() {
     setLoading(true);
     setError(null);
 
+    // Convert phone numbers to bigint if they exist
+    const updateData = { ...formData };
+    if (updateData.phone_number) {
+      const phoneNumberBigint = updateData.phone_number.replace(/\D/g, '');
+      updateData.phone_number = parseInt(phoneNumberBigint, 10);
+    }
+    if (updateData.church_contact_phone) {
+      const churchContactPhoneBigint = updateData.church_contact_phone.replace(/\D/g, '');
+      updateData.church_contact_phone = parseInt(churchContactPhoneBigint, 10);
+    }
+
         const { error } = await supabase
             .from("church2")
-            .update({
-                ...formData,
-            })
+            .update(updateData)
             .eq("church_name", churchName);
 
         if (error) {

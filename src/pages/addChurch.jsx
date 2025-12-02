@@ -18,6 +18,7 @@ export default function AddChurch() {
     church_contact_email: "",
     notes: "",
     photo_url: "",
+    project_leader: "", // Required field in DB
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -38,6 +39,7 @@ export default function AddChurch() {
       church_contact_phone: 20,
       church_contact_email: 100,
       notes: 2000,
+      project_leader: 200,
     };
     
     const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
@@ -98,8 +100,33 @@ export default function AddChurch() {
     setLoading(true);
     setError(null);
 
+    // Validate required fields
+    if (!formData.physical_city || !formData.physical_city.trim()) {
+      setError("City is required.");
+      setLoading(false);
+      return;
+    }
+    
+    if (!formData.physical_state || !formData.physical_state.trim()) {
+      setError("State is required.");
+      setLoading(false);
+      return;
+    }
+    
+    if (!formData.phone_number || !formData.phone_number.trim()) {
+      setError("Phone number is required.");
+      setLoading(false);
+      return;
+    }
+    
+    if (!formData.project_leader || !formData.project_leader.trim()) {
+      setError("Project leader is required.");
+      setLoading(false);
+      return;
+    }
+
     // Validate phone numbers
-    if (formData.phone_number && !validatePhoneNumber(formData.phone_number)) {
+    if (!validatePhoneNumber(formData.phone_number)) {
       setError("Please enter a valid phone number (10 digits).");
       setLoading(false);
       return;
@@ -111,15 +138,31 @@ export default function AddChurch() {
       return;
     }
 
+    // Convert phone numbers to bigint (remove non-digits and convert)
+    const phoneNumberBigint = formData.phone_number.replace(/\D/g, '');
+    const churchContactPhoneBigint = formData.church_contact_phone 
+      ? formData.church_contact_phone.replace(/\D/g, '') 
+      : null;
+
     const { error } = await supabase.from("church2").insert([
       {
-        ...formData,
+        church_name: formData.church_name,
+        project_leader: formData.project_leader,
+        physical_address: formData.physical_address || null,
+        physical_city: formData.physical_city,
+        physical_state: formData.physical_state,
+        physical_zip: formData.physical_zip || null,
+        physical_county: formData.physical_county || null,
+        phone_number: parseInt(phoneNumberBigint, 10),
+        church_contact: formData.church_contact || null,
+        church_contact_phone: churchContactPhoneBigint ? parseInt(churchContactPhoneBigint, 10) : null,
+        church_contact_email: formData.church_contact_email || null,
+        notes: formData.notes || null,
+        photo_url: formData.photo_url || null,
+        mailing_address: formData.physical_address || null, // Use physical address as mailing address
+        mailing_address2: null,
         created_at: new Date().toISOString(),
         // Hidden defaults for optional fields:
-        mailing_address: "",
-        mailing_city: formData.physical_city,
-        mailing_state: formData.physical_state,
-        mailing_zip: formData.physical_zip,
         shoebox_2023: null,
         shoebox_2024: null,
         shoebox_2025: null,
@@ -167,6 +210,7 @@ export default function AddChurch() {
             value={formData.physical_city}
             onChange={handleChange}
             placeholder="City"
+            required
             className="border rounded-lg p-2"
             maxLength={100}
           />
@@ -175,6 +219,7 @@ export default function AddChurch() {
             value={formData.physical_state}
             onChange={handleChange}
             placeholder="State"
+            required
             className="border rounded-lg p-2"
             maxLength={2}
           />
@@ -202,6 +247,7 @@ export default function AddChurch() {
           value={formData.phone_number}
           onChange={handleChange}
           placeholder="Phone Number"
+          required
           className="w-full border rounded-lg p-2"
           maxLength={20}
         />
@@ -229,6 +275,15 @@ export default function AddChurch() {
           placeholder="Church Contact Email"
           className="w-full border rounded-lg p-2"
           maxLength={100}
+        />
+        <input
+          name="project_leader"
+          value={formData.project_leader}
+          onChange={handleChange}
+          placeholder="Project Leader (First Last)"
+          required
+          className="w-full border rounded-lg p-2"
+          maxLength={200}
         />
         <textarea
           name="notes"
