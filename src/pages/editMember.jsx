@@ -69,6 +69,22 @@ export default function EditMember() {
         const file = e.target.files[0];
         if (!file) return;
 
+        // Client-side file type validation
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!allowedTypes.includes(file.type)) {
+            setError('Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).');
+            e.target.value = ''; // Clear the input
+            return;
+        }
+
+        if (file.size > maxSize) {
+            setError('File size too large. Please upload an image smaller than 5MB.');
+            e.target.value = ''; // Clear the input
+            return;
+        }
+
         setUploading(true);
         setError("");
 
@@ -82,7 +98,9 @@ export default function EditMember() {
                 .from('Team Images')
                 .upload(fileName, file);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                throw new Error(uploadError.message || 'Upload failed. Please try again.');
+            }
 
             const filePath = fileName;
 
@@ -90,8 +108,8 @@ export default function EditMember() {
             setForm({ ...form, photo_url: filePath });
 
         } catch (error) {
-            console.error('Upload error:', error);
-            setError('Failed to upload photo: ' + error.message);
+            setError(error.message || 'Failed to upload photo. Please try again.');
+            e.target.value = ''; // Clear the input on error
         } finally {
             setUploading(false);
         }
@@ -108,7 +126,6 @@ export default function EditMember() {
             .eq("id", id);
 
         if (error) {
-            console.error(error);
             setError(error.message);
         } else {
             navigate("/team-members");

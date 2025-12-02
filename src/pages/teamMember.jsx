@@ -51,7 +51,6 @@ export default function TeamMemberPage() {
                 .single();
 
             if (memberError) {
-                console.error("Error fetching team member:", memberError);
                 setLoading(false);
                 return;
             }
@@ -96,7 +95,7 @@ export default function TeamMemberPage() {
                 .order("church_name", { ascending: true });
 
             if (error) {
-                console.error("Error fetching project leader churches:", error);
+                // Error fetching project leader churches
             } else {
                 setProjectLeaderChurches(churchesData || []);
             }

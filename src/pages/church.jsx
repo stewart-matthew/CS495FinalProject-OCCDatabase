@@ -38,7 +38,7 @@ export default function ChurchPage() {
         .eq("church_name", dbChurchName)
         .single();
       if (error) {
-        console.error("Error fetching church:", error);
+        // Error fetching church
       } else {
         setChurch(data);
       }
@@ -58,7 +58,7 @@ export default function ChurchPage() {
           .eq("email", user.email)
           .single();
         if (error) {
-          console.error("Error fetching current team member:", error);
+          // Error fetching current team member
         } else {
           setCurrentTeamMember(memberData);
           // Check if user is admin
@@ -80,7 +80,7 @@ export default function ChurchPage() {
         .order("last_name", { ascending: true });
       
       if (error) {
-        console.error("Error fetching team members:", error);
+        // Error fetching team members
       } else {
         setTeamMembers(data || []);
       }
@@ -103,7 +103,7 @@ export default function ChurchPage() {
         .order("created_at", { ascending: false });
       
       if (error) {
-        console.error("Error fetching notes:", error);
+        // Error fetching notes
       } else {
         setNotes(notesData || []);
       }
@@ -121,7 +121,6 @@ export default function ChurchPage() {
         .select("*")
         .eq("church_name", dbChurchName);
       if (error) {
-        console.error("Error fetching individuals:", error);
         setIndividuals([]);
       } else {
         setIndividuals(data || []);
@@ -163,7 +162,6 @@ export default function ChurchPage() {
       .eq("church_name", dbChurchName);
 
     if (error) {
-      console.error("Error updating shoebox count:", error);
       alert("Failed to update shoebox count. Please try again.");
     } else {
       // Update local state
@@ -187,7 +185,6 @@ export default function ChurchPage() {
       });
 
     if (error) {
-      console.error("Error adding note:", error);
       alert("Failed to add note. Please try again.");
     } else {
       setNewNote("");
@@ -237,7 +234,6 @@ export default function ChurchPage() {
       .select();
 
     if (error) {
-      console.error("Error updating note:", error);
       alert(`Failed to update note: ${error.message}`);
     } else {
       if (data && data.length > 0) {
@@ -264,22 +260,18 @@ export default function ChurchPage() {
   };
 
   const handleDeleteNote = async (noteId) => {
-    console.log("Delete note clicked:", noteId);
     if (!window.confirm("Are you sure you want to delete this note?")) {
       return;
     }
 
-    console.log("Deleting note:", noteId);
     const { error } = await supabase
       .from("notes")
       .delete()
       .eq("id", noteId);
 
     if (error) {
-      console.error("Error deleting note:", error);
       alert(`Failed to delete note: ${error.message}`);
     } else {
-      console.log("Note deleted successfully, refreshing notes");
       // Refresh notes
       const { data: notesData, error: fetchError } = await supabase
         .from("notes")
@@ -292,8 +284,6 @@ export default function ChurchPage() {
       
       if (!fetchError && notesData) {
         setNotes(notesData);
-      } else if (fetchError) {
-        console.error("Error refreshing notes:", fetchError);
       }
     }
   };
@@ -341,7 +331,6 @@ export default function ChurchPage() {
       .eq("church_name", dbChurchName);
 
     if (error) {
-      console.error("Error updating project leader:", error);
       alert("Failed to update project leader. Please try again.");
     } else {
       // Update local state

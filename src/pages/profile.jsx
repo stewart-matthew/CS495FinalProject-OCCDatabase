@@ -81,7 +81,7 @@ export default function Profile() {
                 .maybeSingle();
 
             if (memberError) {
-                console.error(memberError);
+                // Error fetching member data
             }
 
             setMemberData(member || null);
@@ -122,7 +122,6 @@ export default function Profile() {
 
             // If that fails, try without join
             if (error) {
-                console.error("Error fetching notes with join:", error);
                 const { data: simpleData, error: simpleError } = await supabase
                     .from("notes")
                     .select("*")
@@ -130,7 +129,6 @@ export default function Profile() {
                     .order("created_at", { ascending: false });
                 
                 if (simpleError) {
-                    console.error("Error fetching notes:", simpleError);
                     setMyNotes([]);
                 } else {
                     // Fetch church names separately
@@ -187,10 +185,10 @@ export default function Profile() {
                 .eq("project_leader", userFullName);
 
             if (leadError) {
-                console.error("Error fetching lead churches:", leadError);
+                // Error fetching lead churches
             }
             if (projectLeaderError) {
-                console.error("Error fetching project leader churches:", projectLeaderError);
+                // Error fetching project leader churches
             }
 
             // Combine both results and remove duplicates
@@ -206,7 +204,6 @@ export default function Profile() {
     }, [memberData]);
 
     const handleEditNote = (note) => {
-        console.log("Edit note clicked:", note.id);
         setEditingNoteId(note.id);
         setEditingNoteContent(note.content);
     };
@@ -217,7 +214,6 @@ export default function Profile() {
     };
 
     const handleSaveNote = async (noteId) => {
-        console.log("Save note clicked:", noteId);
         if (!editingNoteContent.trim()) {
             alert("Note content cannot be empty.");
             return;
@@ -229,7 +225,6 @@ export default function Profile() {
         }
 
         setSavingNote(true);
-        console.log("Updating note:", noteId, "with content:", editingNoteContent.trim());
 
         const { data, error } = await supabase
             .from("notes")
@@ -237,15 +232,10 @@ export default function Profile() {
             .eq("id", noteId)
             .select();
 
-        console.log("Update response - data:", data);
-        console.log("Update response - error:", error);
-
         if (error) {
-            console.error("Error updating note:", error);
             alert(`Failed to update note: ${error.message}`);
         } else {
             if (data && data.length > 0) {
-                console.log("Note updated successfully");
                 setMyNotes(prev => prev.map(note => 
                     note.id === noteId 
                         ? { ...note, ...data[0] }
@@ -254,7 +244,6 @@ export default function Profile() {
                 setEditingNoteId(null);
                 setEditingNoteContent("");
             } else {
-                console.error("Update returned empty data - RLS policy likely blocked the update");
                 alert("Failed to update note: The update was blocked. Please check your RLS policies.");
             }
         }
@@ -262,31 +251,23 @@ export default function Profile() {
     };
 
     const handleDeleteNote = async (noteId) => {
-        console.log("Delete note clicked:", noteId);
         if (!window.confirm("Are you sure you want to delete this note?")) {
             return;
         }
 
-        console.log("Deleting note:", noteId);
         const { data, error } = await supabase
             .from("notes")
             .delete()
             .eq("id", noteId)
             .select();
 
-        console.log("Delete response - data:", data);
-        console.log("Delete response - error:", error);
-
         if (error) {
-            console.error("Error deleting note:", error);
             alert(`Failed to delete note: ${error.message}`);
         } else {
             // Check if anything was actually deleted
             if (data && data.length > 0) {
-                console.log("Note deleted successfully, removed from UI");
                 setMyNotes(prev => prev.filter(note => note.id !== noteId));
             } else {
-                console.error("Delete returned empty data - RLS policy likely blocked the delete");
                 alert("Failed to delete note: The delete was blocked. Please check your RLS policies.");
             }
         }
@@ -385,7 +366,6 @@ export default function Profile() {
                 .sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
             setTeam(unique);
         } catch (e) {
-            console.error(e);
             setTeamError("Could not load your team.");
             setTeam([]);
         } finally {

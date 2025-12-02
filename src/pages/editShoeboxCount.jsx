@@ -25,7 +25,6 @@ export default function EditShoeboxCount() {
                 .single();
 
             if (error) {
-                console.error(error);
                 setError("Error loading church details.");
             } else {
                 setChurchData(data);
@@ -65,7 +64,6 @@ export default function EditShoeboxCount() {
             .eq("church_name", dbChurchName);
 
         if (updateError) {
-            console.error(updateError);
             setError("Error updating shoebox count.");
         } else {
             navigate(`/church/${encodeURIComponent(churchName)}`);

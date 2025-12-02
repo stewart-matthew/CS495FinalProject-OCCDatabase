@@ -8,7 +8,6 @@ if (!supabaseUrl) {
 }
 
 if (!supabaseAnonKey) {
-  console.error('REACT_APP_SUPABASE_ANON_KEY is missing!');
   throw new Error('Missing REACT_APP_SUPABASE_ANON_KEY environment variable');
 }
 

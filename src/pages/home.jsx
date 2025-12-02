@@ -174,7 +174,6 @@ export default function Home() {
 
         const { data, error } = await query;
         if (error) {
-            console.error("Error fetching churches:", error);
             setChurches([]);
         } else {
             let sortedData = [...data];

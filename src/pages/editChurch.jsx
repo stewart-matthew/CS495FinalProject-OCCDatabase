@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { validatePhoneNumber } from "../utils/validation";
 
 // Helper component for private bucket images - CHURCH VERSION
 function PrivateBucketImage({ filePath, className }) {
@@ -54,7 +55,6 @@ export default function EditChurch() {
                 .single();
 
             if (error) {
-                console.error(error);
                 setError("Error loading church details.");
             } else {
                 setFormData(data);
@@ -64,14 +64,46 @@ export default function EditChurch() {
         fetchChurch();
     }, [churchName]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // Apply character limits
+    const maxLengths = {
+      church_name: 200,
+      physical_address: 200,
+      physical_city: 100,
+      physical_state: 2,
+      physical_zip: 10,
+      physical_county: 100,
+      phone_number: 20,
+      church_contact: 100,
+      church_contact_phone: 20,
+      church_contact_email: 100,
+      notes: 2000,
     };
+    
+    const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+  };
 
     const handlePhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        // Client-side file type validation
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!allowedTypes.includes(file.type)) {
+            setError('Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).');
+            e.target.value = ''; // Clear the input
+            return;
+        }
+
+        if (file.size > maxSize) {
+            setError('File size too large. Please upload an image smaller than 5MB.');
+            e.target.value = ''; // Clear the input
+            return;
+        }
 
         setUploading(true);
         setError(null);
@@ -86,7 +118,9 @@ export default function EditChurch() {
                 .from('Church Images')
                 .upload(fileName, file);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                throw new Error(uploadError.message || 'Upload failed. Please try again.');
+            }
 
             const filePath = fileName;
 
@@ -94,17 +128,29 @@ export default function EditChurch() {
             setFormData(prev => ({ ...prev, photo_url: filePath }));
 
         } catch (error) {
-            console.error('Upload error:', error);
-            setError('Failed to upload photo: ' + error.message);
+            setError(error.message || 'Failed to upload photo. Please try again.');
+            e.target.value = ''; // Clear the input on error
         } finally {
             setUploading(false);
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate phone numbers
+    if (formData.phone_number && !validatePhoneNumber(formData.phone_number)) {
+      setError("Please enter a valid phone number (10 digits).");
+      return;
+    }
+    
+    if (formData.church_contact_phone && !validatePhoneNumber(formData.church_contact_phone)) {
+      setError("Please enter a valid church contact phone number (10 digits).");
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
 
         const { error } = await supabase
             .from("church2")
@@ -114,7 +160,6 @@ export default function EditChurch() {
             .eq("church_name", churchName);
 
         if (error) {
-            console.error(error);
             setError("Error updating church information.");
         } else {
             navigate(`/church/${churchName}`);

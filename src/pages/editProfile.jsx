@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { validatePhoneNumber } from "../utils/validation";
 
 // Helper component for private bucket images
 function PrivateBucketImage({ filePath, className }) {
@@ -69,7 +70,6 @@ export default function EditProfile() {
 
                 setFormData(member);
             } catch (err) {
-                console.error(err);
                 alert("An error occurred loading your profile.");
             } finally {
                 setLoading(false);
@@ -80,12 +80,50 @@ export default function EditProfile() {
     }, [navigate]);
 
     const handleChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        // Apply character limits
+        const maxLengths = {
+            first_name: 50,
+            last_name: 50,
+            email: 100,
+            phone_number: 20,
+            alt_phone_number: 20,
+            home_address: 200,
+            home_city: 100,
+            home_state: 2,
+            home_zip: 10,
+            home_county: 100,
+            shirt_size: 10,
+            church_affiliation_name: 200,
+            church_affiliation_city: 100,
+            church_affiliation_state: 2,
+            church_affiliation_county: 100,
+            member_notes: 1000,
+        };
+        
+        const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
+        setFormData(prev => ({ ...prev, [name]: processedValue }));
     };
 
     const handlePhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        // Client-side file type validation
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!allowedTypes.includes(file.type)) {
+            setError('Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).');
+            e.target.value = ''; // Clear the input
+            return;
+        }
+
+        if (file.size > maxSize) {
+            setError('File size too large. Please upload an image smaller than 5MB.');
+            e.target.value = ''; // Clear the input
+            return;
+        }
 
         setUploading(true);
         setError("");
@@ -100,7 +138,9 @@ export default function EditProfile() {
                 .from('Team Images')
                 .upload(fileName, file);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                throw new Error(uploadError.message || 'Upload failed. Please try again.');
+            }
 
             const filePath = fileName;
 
@@ -108,8 +148,8 @@ export default function EditProfile() {
             setFormData(prev => ({ ...prev, photo_url: filePath }));
 
         } catch (error) {
-            console.error('Upload error:', error);
-            setError('Failed to upload photo: ' + error.message);
+            setError(error.message || 'Failed to upload photo. Please try again.');
+            e.target.value = ''; // Clear the input on error
         } finally {
             setUploading(false);
         }
@@ -117,6 +157,18 @@ export default function EditProfile() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validate phone numbers
+        if (formData.phone_number && !validatePhoneNumber(formData.phone_number)) {
+            setError("Please enter a valid phone number (10 digits).");
+            return;
+        }
+        
+        if (formData.alt_phone_number && !validatePhoneNumber(formData.alt_phone_number)) {
+            setError("Please enter a valid alternate phone number (10 digits).");
+            return;
+        }
+        
         setLoading(true);
 
         try {
@@ -152,7 +204,6 @@ export default function EditProfile() {
                 navigate("/profile");
             }
         } catch (err) {
-            console.error(err);
             alert("An unexpected error occurred.");
         } finally {
             setLoading(false);
@@ -208,6 +259,7 @@ export default function EditProfile() {
                     value={formData.phone_number || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={20}
                 />
                 <input
                     name="alt_phone_number"
@@ -215,6 +267,7 @@ export default function EditProfile() {
                     value={formData.alt_phone_number || ""}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded"
+                    maxLength={20}
                 />
                 <input
                     name="home_address"

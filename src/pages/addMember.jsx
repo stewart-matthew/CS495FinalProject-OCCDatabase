@@ -23,6 +23,7 @@ export default function AddMember() {
     church_affiliation_city: "",
     church_affiliation_state: "",
     church_affiliation_county: "",
+    member_notes: "",
     photo_url: "", // Added photo_url field
     active: true, // Always true by default — no checkbox needed
   });
@@ -51,6 +52,7 @@ export default function AddMember() {
       church_affiliation_city: 100,
       church_affiliation_state: 2,
       church_affiliation_county: 100,
+      member_notes: 1000,
     };
     
     const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
@@ -209,6 +211,7 @@ export default function AddMember() {
                   field === "church_affiliation_city" ? 100 :
                   field === "church_affiliation_state" ? 2 :
                   field === "church_affiliation_county" ? 100 :
+                  field === "member_notes" ? 1000 :
                   undefined
                 }
               />

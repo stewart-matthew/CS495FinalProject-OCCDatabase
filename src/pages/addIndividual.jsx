@@ -34,7 +34,7 @@ export default function AddIndividual() {
         .order("church_name", { ascending: true });
       
       if (error) {
-        console.error("Error fetching churches:", error);
+        // Error fetching churches
       } else {
         setChurches(data || []);
       }
@@ -77,7 +77,6 @@ export default function AddIndividual() {
     setLoading(false);
 
     if (insertError) {
-      console.error(insertError);
       setError("Error adding individual. Please try again.");
     } else {
       navigate("/individuals");

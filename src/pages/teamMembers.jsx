@@ -74,7 +74,7 @@ export default function TeamMembers() {
                     .eq("email", user.email)
                     .single();
                 if (error) {
-                    console.error("Error fetching current user:", error);
+                    // Error fetching current user
                 } else {
                     setCurrentUser(memberData);
                 }
@@ -91,7 +91,6 @@ export default function TeamMembers() {
                 .select(`*, member_positions(position)`);
 
             if (error) {
-                console.error("Error fetching team members:", error);
                 setMembers([]);
                 setLoading(false);
                 return;
@@ -186,7 +185,6 @@ export default function TeamMembers() {
             await navigator.clipboard.writeText(emails);
             setCopyStatus("success");
         } catch (err) {
-            console.error("Clipboard copy failed:", err);
             setCopyStatus("error");
         }
     };

@@ -37,7 +37,6 @@ export default function Individuals() {
                 .order("first_name", { ascending: true });
             
             if (error) {
-                console.error("Error fetching individuals:", error);
                 setIndividuals([]);
             } else {
                 setIndividuals(data || []);
@@ -58,7 +57,7 @@ export default function Individuals() {
                     .eq("email", user.email)
                     .single();
                 if (error) {
-                    console.error("Error fetching current team member:", error);
+                    // Error fetching current team member
                 } else {
                     // Check if user is admin
                     setIsAdmin(memberData?.admin_flag === true || memberData?.admin_flag === "true");
@@ -152,7 +151,6 @@ export default function Individuals() {
             setCopyStatus("success");
             setTimeout(() => setCopyStatus(null), 3000);
         } catch (err) {
-            console.error("Clipboard copy failed:", err);
             setCopyStatus("error");
             setTimeout(() => setCopyStatus(null), 3000);
         }
@@ -172,7 +170,6 @@ export default function Individuals() {
             .eq("id", individual.id);
 
         if (error) {
-            console.error("Error updating active status:", error);
             alert("Failed to update status. Please try again.");
         } else {
             // Update local state
@@ -231,7 +228,6 @@ export default function Individuals() {
             .eq("id", individualId);
 
         if (error) {
-            console.error("Error updating individual:", error);
             alert("Failed to update individual. Please try again.");
         } else {
             // Update local state

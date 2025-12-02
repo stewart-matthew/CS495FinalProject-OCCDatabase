@@ -16,6 +16,7 @@ export default function AddChurch() {
     church_contact: "",
     church_contact_phone: "",
     church_contact_email: "",
+    notes: "",
     photo_url: "",
   });
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ export default function AddChurch() {
       church_contact: 100,
       church_contact_phone: 20,
       church_contact_email: 100,
+      notes: 2000,
     };
     
     const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
@@ -228,6 +230,15 @@ export default function AddChurch() {
           className="w-full border rounded-lg p-2"
           maxLength={100}
         />
+        <textarea
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="Notes"
+          className="w-full border rounded-lg p-2"
+          rows="3"
+          maxLength={2000}
+        ></textarea>
         
         {/* Photo Upload Section */}
         <div className="space-y-2">
