@@ -722,7 +722,7 @@ export default function Profile() {
                     {churchesLoading ? (
                         <p>Loading churches...</p>
                     ) : myChurches.length === 0 ? (
-                        <p className="text-gray-600">You are not the lead or project leader for any churches.</p>
+                            <p className="text-gray-600">You are not currently the Church Relations Point of Contact for any churches.</p>
                     ) : (
                         <ul className="divide-y">
                             {myChurches.map((church) => (
