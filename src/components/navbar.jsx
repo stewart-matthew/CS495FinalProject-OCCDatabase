@@ -25,7 +25,7 @@ export default function Navbar() {
     };
   }, []);
 
-  const hideLinks = location.pathname === "/login";
+  const hideLinks = ["/login", "/reset-password"].includes(location.pathname);
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">

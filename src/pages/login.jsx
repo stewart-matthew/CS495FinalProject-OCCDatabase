@@ -15,32 +15,36 @@ export default function Login() {
     setLoading(true);
     setErrorMessage("");
 
-    // Override persistence based on checkbox
+    // Clear old session first
     supabase.auth.setSession({
       access_token: null,
       refresh_token: null,
-    }); // Clear old session first
+    });
 
-    // tell supabase whether to persist session
-    supabase.auth.signInWithPassword(
-      { email, password },
-      { persistSession: rememberMe }
-    ).then(async ({ data, error }) => {
-      if (error) {
-        setErrorMessage(error.message);
-      } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const role = user.user_metadata.role || "user";
-          if (role === "admin" || role === "master") {
-            navigate("/home");
-          } else {
-            navigate("/profile");
+    // Sign in and control persistence based on rememberMe
+    supabase.auth
+      .signInWithPassword(
+        { email, password },
+        { persistSession: rememberMe }
+      )
+      .then(async ({ data, error }) => {
+        if (error) {
+          setErrorMessage(error.message);
+        } else {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user) {
+            const role = user.user_metadata.role || "user";
+            if (role === "admin" || role === "master") {
+              navigate("/home");
+            } else {
+              navigate("/profile");
+            }
           }
         }
-      }
-      setLoading(false);
-    });
+        setLoading(false);
+      });
   };
 
   return (
@@ -65,15 +69,25 @@ export default function Login() {
             required
           />
 
-          {/* Remember me checkbox */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="mr-2"
-            />
-            <label>Remember me</label>
+          {/* Remember me + Forgot password */}
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="mr-2"
+              />
+              <span>Remember me</span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="text-blue-600 hover:underline"
+            >
+              Forgot your password?
+            </button>
           </div>
 
           {errorMessage && (

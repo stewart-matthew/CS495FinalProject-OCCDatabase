@@ -15,21 +15,21 @@ import AddChurch from "./pages/addChurch";
 import EditChurch from "./pages/editChurch";
 import TeamMember from "./pages/teamMember";
 import Individuals from "./pages/individuals";
+import ForgotPassword from "./pages/forgotPassword";
+import ResetPassword from "./pages/resetPassword";
 
 function App() {
   return (
     <Router>
-      {/* min-h-screen ensures background color spans the viewport */}
       <div className="min-h-screen bg-gray-100">
-
-        {/* Navbar is fixed, so we need top padding for content */}
         <Navbar />
 
-        {/* Add top padding equal to navbar height */}
         <div className="pt-20">
           <Routes>
-            {/* Public route */}
+            {/* Public routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected routes */}
             <Route
