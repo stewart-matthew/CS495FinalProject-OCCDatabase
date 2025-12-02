@@ -354,6 +354,7 @@ export default function Home() {
                             <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>
                             {church[shoeboxFieldName] !== undefined && <p className="text-gray-700"><strong>Shoebox {filters.selectedYear}:</strong> {church[shoeboxFieldName]}</p>}
                             {church.physical_zip && <p className="text-gray-700"><strong>Zip Code:</strong> {church.physical_zip}</p>}
+                            {church.project_leader && <p className="text-gray-700"><strong>Project Leader:</strong> {church.project_leader}</p>}
                         </div>
                         {church.photo_url && (
                             <PrivateBucketImage

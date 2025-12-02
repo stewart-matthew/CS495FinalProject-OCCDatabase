@@ -16,6 +16,10 @@ export default function ChurchPage() {
   const [shoeboxEditValue, setShoeboxEditValue] = useState("");
   const [savingShoebox, setSavingShoebox] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [isEditingProjectLeader, setIsEditingProjectLeader] = useState(false);
+  const [selectedProjectLeader, setSelectedProjectLeader] = useState("");
+  const [savingProjectLeader, setSavingProjectLeader] = useState(false);
   const navigate = useNavigate();
   
   // Get current year dynamically - automatically switches to 2026 when the year changes
@@ -61,6 +65,25 @@ export default function ChurchPage() {
     }
     getCurrentTeamMember();
   }, []);
+
+  // Fetch all team members for admin dropdown
+  useEffect(() => {
+    async function getAllTeamMembers() {
+      if (!isAdmin) return;
+      
+      const { data, error } = await supabase
+        .from("team_members")
+        .select("id, first_name, last_name")
+        .order("last_name", { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching team members:", error);
+      } else {
+        setTeamMembers(data || []);
+      }
+    }
+    getAllTeamMembers();
+  }, [isAdmin]);
 
   // Fetch notes for this church
   useEffect(() => {
@@ -216,6 +239,60 @@ export default function ChurchPage() {
     }
   };
 
+  const handleEditProjectLeader = () => {
+    if (!isAdmin) return;
+    setIsEditingProjectLeader(true);
+    // Set current project leader as selected
+    if (church.project_leader) {
+      // Find matching team member by matching "First Last" format
+      const matchingMember = teamMembers.find(member => 
+        `${member.first_name} ${member.last_name}` === church.project_leader
+      );
+      if (matchingMember) {
+        setSelectedProjectLeader(matchingMember.id);
+      } else {
+        setSelectedProjectLeader("");
+      }
+    } else {
+      setSelectedProjectLeader("");
+    }
+  };
+
+  const handleCancelEditProjectLeader = () => {
+    setIsEditingProjectLeader(false);
+    setSelectedProjectLeader("");
+  };
+
+  const handleSaveProjectLeader = async () => {
+    if (!church || !isAdmin) return;
+    
+    setSavingProjectLeader(true);
+    
+    // Get selected team member's name
+    const selectedMember = teamMembers.find(m => m.id === selectedProjectLeader);
+    const projectLeaderName = selectedMember 
+      ? `${selectedMember.first_name} ${selectedMember.last_name}`
+      : null;
+
+    // Convert spaces to underscores to match database format
+    const dbChurchName = church.church_name.replace(/ /g, "_");
+    const { error } = await supabase
+      .from("church2")
+      .update({ project_leader: projectLeaderName })
+      .eq("church_name", dbChurchName);
+
+    if (error) {
+      console.error("Error updating project leader:", error);
+      alert("Failed to update project leader. Please try again.");
+    } else {
+      // Update local state
+      setChurch({ ...church, project_leader: projectLeaderName });
+      setIsEditingProjectLeader(false);
+      setSelectedProjectLeader("");
+    }
+    setSavingProjectLeader(false);
+  };
+
   if (loading) return <p>Loading church...</p>;
   if (!church) return <p>Church not found.</p>;
 
@@ -228,6 +305,52 @@ export default function ChurchPage() {
           <p className="text-gray-700 mb-2">{church.physical_city}, {church.physical_state}</p>
           <p className="text-gray-700 mb-2">{church.physical_county} County</p>
           <p className="text-gray-700 mb-2">Zip: {church.physical_zip}</p>
+          <div className="text-gray-700 mb-2 flex items-center gap-2">
+            <span><strong>Project Leader:</strong></span>
+            {isEditingProjectLeader && isAdmin ? (
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedProjectLeader}
+                  onChange={(e) => setSelectedProjectLeader(e.target.value)}
+                  className="border rounded-md p-1"
+                  disabled={savingProjectLeader}
+                >
+                  <option value="">None</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.first_name} {member.last_name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSaveProjectLeader}
+                  disabled={savingProjectLeader}
+                  className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-green-300"
+                >
+                  {savingProjectLeader ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={handleCancelEditProjectLeader}
+                  disabled={savingProjectLeader}
+                  className="bg-gray-300 text-black px-3 py-1 rounded text-sm hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>{church.project_leader || "N/A"}</span>
+                {isAdmin && (
+                  <button
+                    onClick={handleEditProjectLeader}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="text-gray-700 mb-2 flex items-center gap-2">
             <span>Shoebox {SHOEBOX_YEAR}:</span>
             {isEditingShoebox ? (

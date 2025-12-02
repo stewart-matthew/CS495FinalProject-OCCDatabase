@@ -164,7 +164,7 @@ export default function Profile() {
         getMyNotes();
     }, [memberData]);
 
-    // Fetch churches where user is the lead
+    // Fetch churches where user is the lead or project leader
     useEffect(() => {
         async function getMyChurches() {
             if (!memberData?.id) return;
@@ -172,18 +172,34 @@ export default function Profile() {
             setChurchesLoading(true);
             const currentYear = new Date().getFullYear(); // Automatically updates when year changes
             const relationsField = `relations_member_${currentYear}`;
+            const userFullName = `${memberData.first_name} ${memberData.last_name}`;
 
-            const { data: churchesData, error } = await supabase
+            // Fetch churches where user is the lead (relations_member_YEAR)
+            const { data: leadChurches, error: leadError } = await supabase
                 .from("church2")
                 .select("id, church_name, physical_city, physical_state")
-                .eq(relationsField, memberData.id)
-                .order("church_name", { ascending: true });
+                .eq(relationsField, memberData.id);
 
-            if (error) {
-                console.error("Error fetching churches:", error);
-            } else {
-                setMyChurches(churchesData || []);
+            // Fetch churches where user is the project leader
+            const { data: projectLeaderChurches, error: projectLeaderError } = await supabase
+                .from("church2")
+                .select("id, church_name, physical_city, physical_state")
+                .eq("project_leader", userFullName);
+
+            if (leadError) {
+                console.error("Error fetching lead churches:", leadError);
             }
+            if (projectLeaderError) {
+                console.error("Error fetching project leader churches:", projectLeaderError);
+            }
+
+            // Combine both results and remove duplicates
+            const allChurches = [...(leadChurches || []), ...(projectLeaderChurches || [])];
+            const uniqueChurches = Array.from(
+                new Map(allChurches.map(church => [church.id, church])).values()
+            ).sort((a, b) => (a.church_name || "").localeCompare(b.church_name || ""));
+
+            setMyChurches(uniqueChurches);
             setChurchesLoading(false);
         }
         getMyChurches();
@@ -615,7 +631,7 @@ export default function Profile() {
                     {churchesLoading ? (
                         <p>Loading churches...</p>
                     ) : myChurches.length === 0 ? (
-                        <p className="text-gray-600">You are not the lead for any churches.</p>
+                        <p className="text-gray-600">You are not the lead or project leader for any churches.</p>
                     ) : (
                         <ul className="divide-y">
                             {myChurches.map((church) => (
