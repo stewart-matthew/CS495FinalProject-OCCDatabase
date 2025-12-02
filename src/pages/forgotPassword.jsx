@@ -12,7 +12,7 @@ export default function ForgotPassword() {
     setStatus("");
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "http://localhost:3000/reset-password",
+      redirectTo: "https://westalabama-occ.onrender.com/reset-password",
     });
 
     if (error) {
