@@ -109,8 +109,9 @@ export default function Individuals() {
     }, [individuals, filters, sortBy]);
 
     const copyAllEmails = async () => {
+        // Only copy emails from active individuals
         const emails = filteredIndividuals
-            .filter(ind => ind.email)
+            .filter(ind => ind.email && ind.active_to_emails === true)
             .map(ind => ind.email)
             .join(", ");
 
@@ -127,6 +128,29 @@ export default function Individuals() {
             console.error("Clipboard copy failed:", err);
             setCopyStatus("error");
             setTimeout(() => setCopyStatus(null), 3000);
+        }
+    };
+
+    const toggleActiveStatus = async (individual) => {
+        const newStatus = !individual.active_to_emails;
+        
+        const { error } = await supabase
+            .from("individuals")
+            .update({ active_to_emails: newStatus })
+            .eq("id", individual.id);
+
+        if (error) {
+            console.error("Error updating active status:", error);
+            alert("Failed to update status. Please try again.");
+        } else {
+            // Update local state
+            setIndividuals(prev => 
+                prev.map(ind => 
+                    ind.id === individual.id 
+                        ? { ...ind, active_to_emails: newStatus }
+                        : ind
+                )
+            );
         }
     };
 
@@ -323,13 +347,16 @@ export default function Individuals() {
                                             {ind.church_name ? ind.church_name.replace(/_/g, " ") : "N/A"}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                ind.active_to_emails 
-                                                    ? "bg-green-100 text-green-800" 
-                                                    : "bg-red-100 text-red-800"
-                                            }`}>
+                                            <button
+                                                onClick={() => toggleActiveStatus(ind)}
+                                                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                                    ind.active_to_emails 
+                                                        ? "bg-green-100 text-green-800 hover:bg-green-200" 
+                                                        : "bg-red-100 text-red-800 hover:bg-red-200"
+                                                }`}
+                                            >
                                                 {ind.active_to_emails ? "Active" : "Inactive"}
-                                            </span>
+                                            </button>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
                                             <div className="flex flex-wrap gap-1">
