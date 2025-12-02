@@ -1,0 +1,8 @@
+site_name: OCC Database Documentation
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Features: features.md
+  - Modify: modify.md
+  - Video: video.md
+  - FAQ: faq.md
