@@ -159,21 +159,42 @@ export default function ChurchPage() {
 
   useEffect(() => {
     async function getIndividuals() {
-      // Convert spaces to underscores to match database format
-      const dbChurchName = churchName.replace(/ /g, "_");
-      const { data, error } = await supabase
-        .from("individuals")
-        .select("*")
-        .eq("church_name", dbChurchName);
-      if (error) {
-        setIndividuals([]);
-      } else {
-        setIndividuals(data || []);
+      if (!church) return;
+      
+      // Use the actual church name from the database (already loaded correctly)
+      // Try multiple variants to handle both spaces and underscores
+      const churchNameVariants = [
+        church.church_name, // Actual name from database
+        church.church_name.replace(/ /g, "_"), // With underscores
+        church.church_name.replace(/_/g, " ") // With spaces
+      ];
+      
+      let allIndividuals = [];
+      
+      // Try each variant and collect all individuals
+      for (const nameVariant of churchNameVariants) {
+        const { data, error } = await supabase
+          .from("individuals")
+          .select("*")
+          .eq("church_name", nameVariant);
+        
+        if (!error && data) {
+          allIndividuals = [...allIndividuals, ...data];
+        }
       }
+      
+      // Remove duplicates based on id
+      const uniqueIndividuals = Array.from(
+        new Map(allIndividuals.map(ind => [ind.id, ind])).values()
+      );
+      
+      setIndividuals(uniqueIndividuals);
       setIndividualsLoading(false);
     }
-    getIndividuals();
-  }, [churchName]);
+    if (church) {
+      getIndividuals();
+    }
+  }, [church]);
 
   const shoeboxYears = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019];
 
@@ -369,12 +390,11 @@ export default function ChurchPage() {
     
     setSavingProjectLeader(true);
     
-    // Convert spaces to underscores to match database format
-    const dbChurchName = church.church_name.replace(/ /g, "_");
+    // Use the actual church name from the database (already loaded correctly)
     const { error } = await supabase
       .from("church2")
       .update({ project_leader: selectedProjectLeader })
-      .eq("church_name", dbChurchName);
+      .eq("church_name", church.church_name);
 
     if (error) {
       alert("Failed to update project leader. Please try again.");
@@ -408,14 +428,13 @@ export default function ChurchPage() {
     
     setSavingRelationsMember(true);
     
-    // Convert spaces to underscores to match database format
-    const dbChurchName = church.church_name.replace(/ /g, "_");
+    // Use the actual church name from the database (already loaded correctly)
     const updateData = { [relationsFieldName]: selectedRelationsMember || null };
     
     const { error } = await supabase
       .from("church2")
       .update(updateData)
-      .eq("church_name", dbChurchName);
+      .eq("church_name", church.church_name);
 
     if (error) {
       alert("Failed to update church relations team member. Please try again.");
@@ -443,9 +462,6 @@ export default function ChurchPage() {
             <div className="space-y-2 text-gray-700 mb-4">
               {church["church_phone_number"] && (
                 <p><strong>Phone:</strong> {church["church_phone_number"]}</p>
-              )}
-              {church["church_POC_first_name"] && church["church_POC_last_name"] && (
-                <p><strong>Point of Contact:</strong> {church["church_POC_first_name"]} {church["church_POC_last_name"]}</p>
               )}
               <p><strong>Project Leader:</strong> {
                 church.project_leader === true
@@ -519,49 +535,56 @@ export default function ChurchPage() {
               )}
             </div>
 
-            {/* Physical Address */}
+            {/* Physical and Mailing Address */}
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">Physical Address</h2>
-              <div className="space-y-1 text-gray-700">
-                {church["church_physical_address"] && (
-                  <p>{church["church_physical_address"]}</p>
-                )}
-                <p>
-                  {[
-                    church["church_physical_city"],
-                    church["church_physical_state"],
-                    church["church_physical_zip"]
-                  ].filter(Boolean).join(", ")}
-                </p>
-                {church["church_physical_county"] && (
-                  <p>{church["church_physical_county"]} County</p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Physical Address */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-2">Physical Address</h2>
+                  <div className="space-y-1 text-gray-700">
+                    {church["church_physical_address"] && (
+                      <p>{church["church_physical_address"]}</p>
+                    )}
+                    <p>
+                      {[
+                        church["church_physical_city"],
+                        church["church_physical_state"],
+                        church["church_physical_zip"]
+                      ].filter(Boolean).join(" ")}
+                    </p>
+                    {church["church_physical_county"] && (
+                      <p>{church["church_physical_county"]} County</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mailing Address */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-2">Mailing Address</h2>
+                  <div className="space-y-1 text-gray-700">
+                    {church["church_mailing_address"] ? (
+                      <p>{church["church_mailing_address"]}</p>
+                    ) : (
+                      <p className="text-gray-400 italic">Not provided</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Mailing Address (if different) */}
-            {church["church_mailing_address"] && (
+            {/* Church Point of Contact (POC) */}
+            {(church["church_POC_first_name"] || church["church_POC_last_name"] || church["church_POC_phone"] || church["church_POC_email"]) && (
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2">Mailing Address</h2>
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">Church Point of Contact (POC)</h2>
                 <div className="space-y-1 text-gray-700">
-                  {church["church_mailing_address"] && <p>{church["church_mailing_address"]}</p>}
-                </div>
-              </div>
-            )}
-
-            {/* Church Contact Information */}
-            {(church.church_contact || church["church_POC_phone"] || church["church_POC_email"]) && (
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2">Church Contact</h2>
-                <div className="space-y-1 text-gray-700">
-                  {church.church_contact && (
-                    <p><strong>Contact Name:</strong> {church.church_contact}</p>
+                  {(church["church_POC_first_name"] || church["church_POC_last_name"]) && (
+                    <p>{`${church["church_POC_first_name"] || ""} ${church["church_POC_last_name"] || ""}`.trim()}</p>
                   )}
                   {church["church_POC_phone"] && (
-                    <p><strong>POC Phone:</strong> {church["church_POC_phone"]}</p>
+                    <p>Phone: {church["church_POC_phone"]}</p>
                   )}
                   {church["church_POC_email"] && (
-                    <p><strong>POC Email:</strong> {church["church_POC_email"]}</p>
+                    <p>Email: {church["church_POC_email"]}</p>
                   )}
                 </div>
               </div>

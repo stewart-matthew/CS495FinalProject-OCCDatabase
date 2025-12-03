@@ -41,6 +41,7 @@ export default function EditChurch() {
     const { churchName } = useParams();
     const navigate = useNavigate();
     const [formData, setFormData] = useState(null);
+    const [originalChurchName, setOriginalChurchName] = useState(null); // Store original name for WHERE clause
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -98,6 +99,7 @@ export default function EditChurch() {
 
             if (churchData) {
                 setFormData(churchData);
+                setOriginalChurchName(churchData.church_name); // Store original name for WHERE clause
             } else {
                 setError("Error loading church details.");
             }
@@ -217,7 +219,7 @@ export default function EditChurch() {
                 ...fieldsToUpdate,
                 updated_at: new Date().toISOString()
             })
-            .eq("church_name", churchName);
+            .eq("church_name", originalChurchName); // Use original church name for WHERE clause
 
         if (error) {
             setError("Error updating church information.");

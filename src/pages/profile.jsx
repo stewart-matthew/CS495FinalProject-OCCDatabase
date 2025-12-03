@@ -102,20 +102,36 @@ export default function Profile() {
 
                 // Fetch affiliated church by name and city to get the correct one
                 if (member.church_affiliation_name) {
-                    const dbChurchName = member.church_affiliation_name.replace(/ /g, "_");
-                    let churchQuery = supabase
-                        .from("church2")
-                        .select("id, church_name, church_physical_city, church_physical_state")
-                        .eq("church_name", dbChurchName);
+                    // Try multiple name variants to handle both spaces and underscores
+                    const churchNameVariants = [
+                        member.church_affiliation_name, // Original
+                        member.church_affiliation_name.replace(/ /g, "_"), // With underscores
+                        member.church_affiliation_name.replace(/_/g, " ") // With spaces
+                    ];
                     
-                    // If we have city info, filter by city to get the exact match
-                    if (member.church_affiliation_city) {
-                        churchQuery = churchQuery.ilike("church_physical_city", `%${member.church_affiliation_city}%`);
+                    let churchData = null;
+                    
+                    // Try each variant
+                    for (const nameVariant of churchNameVariants) {
+                        let churchQuery = supabase
+                            .from("church2")
+                            .select("id, church_name, church_physical_city, church_physical_state")
+                            .eq("church_name", nameVariant);
+                        
+                        // If we have city info, filter by city to get the exact match
+                        if (member.church_affiliation_city) {
+                            churchQuery = churchQuery.ilike("church_physical_city", `%${member.church_affiliation_city}%`);
+                        }
+                        
+                        const { data, error: churchError } = await churchQuery.maybeSingle();
+                        
+                        if (!churchError && data) {
+                            churchData = data;
+                            break; // Found it, stop searching
+                        }
                     }
                     
-                    const { data: churchData, error: churchError } = await churchQuery.maybeSingle();
-                    
-                    if (!churchError && churchData) {
+                    if (churchData) {
                         setAffiliatedChurch(churchData);
                     }
                 }

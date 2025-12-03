@@ -61,12 +61,12 @@ export default function AddIndividual() {
     setLoading(true);
     setError(null);
 
-    // Convert church name to underscore format if needed
-    const dbChurchName = formData.church_name.replace(/ /g, "_");
+    // Use the church name as-is (from dropdown, which has the actual database value)
+    // No need to convert - the dropdown already has the correct format from the database
 
     const submitData = {
       ...formData,
-      church_name: dbChurchName,
+      church_name: formData.church_name, // Use as-is from dropdown
       other_description: formData.other ? formData.other_description : null,
     };
 

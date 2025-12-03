@@ -177,8 +177,12 @@ export default function Home() {
         let query = supabase.from("church2").select("*");
 
         if (filterValues.churchName) {
-            const searchValue = filterValues.churchName.replace(/ /g, "_");
-            query = query.ilike("church_name", `%${searchValue}%`);
+            // Search for both spaces and underscores
+            const searchValue = filterValues.churchName.trim();
+            const searchWithSpaces = searchValue;
+            const searchWithUnderscores = searchValue.replace(/ /g, "_");
+            // Use OR to match either format - Supabase OR syntax
+            query = query.or(`church_name.ilike.%${searchWithSpaces}%,church_name.ilike.%${searchWithUnderscores}%`);
         }
         if (filterValues.zipcode) query = query.eq("church_physical_zip", filterValues.zipcode);
         const shoeboxField = `shoebox_${filterValues.selectedYear}`;

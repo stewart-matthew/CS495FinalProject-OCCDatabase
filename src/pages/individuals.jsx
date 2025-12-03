@@ -71,12 +71,17 @@ export default function Individuals() {
     useEffect(() => {
         let filtered = [...individuals];
 
-        // Filter by church name
+        // Filter by church name - handle both spaces and underscores
         if (filters.churchName) {
-            const searchValue = filters.churchName.replace(/ /g, "_");
-            filtered = filtered.filter(ind => 
-                ind.church_name && ind.church_name.toLowerCase().includes(searchValue.toLowerCase())
-            );
+            const searchValue = filters.churchName.toLowerCase().trim();
+            const searchWithSpaces = searchValue;
+            const searchWithUnderscores = searchValue.replace(/ /g, "_");
+            filtered = filtered.filter(ind => {
+                if (!ind.church_name) return false;
+                const churchNameLower = ind.church_name.toLowerCase();
+                return churchNameLower.includes(searchWithSpaces) || 
+                       churchNameLower.includes(searchWithUnderscores);
+            });
         }
 
         // Filter by active to emails
