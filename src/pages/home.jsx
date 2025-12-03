@@ -362,8 +362,6 @@ export default function Home() {
     }, []);
 
     if (loading) return <p>Loading...</p>;
-    if (churches.length === 0 && filters.selectedCounties.length > 0) return <p>No churches found in the selected counties.</p>;
-    if (churches.length === 0) return <p>No churches found.</p>;
 
     return (
         <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0">
@@ -444,62 +442,67 @@ export default function Home() {
                     />
                 </div>
 
-                <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
-                    <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                        onClick={() => getChurches()}
-                    >
-                        Apply Other Filters
-                    </button>
+                <div className="mt-4 flex flex-col">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        <button
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                            onClick={() => getChurches()}
+                        >
+                            Apply Filters
+                        </button>
 
-                    <button
-                        className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-                        onClick={() => {
-                            const clearedFilters = { churchName: "", zipcode: "", shoeboxMin: "", sortBy: "", selectedCounties: [], selectedYear: currentYear };
-                            setFilters(clearedFilters);
-                            getChurches(clearedFilters);
-                        }}
-                    >
-                        Clear All Filters
-                    </button>
+                        <button
+                            className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+                            onClick={() => {
+                                const clearedFilters = { churchName: "", zipcode: "", shoeboxMin: "", sortBy: "", selectedCounties: [], selectedYear: currentYear };
+                                setFilters(clearedFilters);
+                                getChurches(clearedFilters);
+                            }}
+                        >
+                            Clear All Filters
+                        </button>
 
-                    {/* Year and Sort Dropdowns */}
-                    <div className="ml-auto flex gap-4 items-center">
-                        <div>
-                            <label className="mr-2 font-medium">Year:</label>
-                            <select
-                                value={filters.selectedYear}
-                                onChange={(e) => {
-                                    const selectedYear = parseInt(e.target.value);
-                                    const newFilters = { ...filters, selectedYear };
-                                    setFilters(newFilters);
-                                    getChurches(newFilters);
-                                }}
-                                className="border p-2 rounded"
-                            >
-                                {Array.from({ length: currentYear - 2022 }, (_, i) => 2023 + i).map(year => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="mr-2 font-medium">Sort by:</label>
-                            <select
-                                value={filters.sortBy || "name_asc"}
-                                onChange={(e) => {
-                                    const sortBy = e.target.value;
-                                    const newFilters = { ...filters, sortBy };
-                                    setFilters(newFilters);
-                                    getChurches(newFilters);
-                                }}
-                                className="border p-2 rounded"
-                            >
-                                <option value="name_asc">Name (A → Z)</option>
-                                <option value="name_desc">Name (Z → A)</option>
-                                <option value="shoebox_desc">Shoebox Count (High → Low)</option>
-                            </select>
+                        {/* Year and Sort Dropdowns */}
+                        <div className="ml-auto flex gap-4 items-center">
+                            <div>
+                                <label className="mr-2 font-medium">Year:</label>
+                                <select
+                                    value={filters.selectedYear}
+                                    onChange={(e) => {
+                                        const selectedYear = parseInt(e.target.value);
+                                        const newFilters = { ...filters, selectedYear };
+                                        setFilters(newFilters);
+                                        getChurches(newFilters);
+                                    }}
+                                    className="border p-2 rounded"
+                                >
+                                    {Array.from({ length: currentYear - 2022 }, (_, i) => 2023 + i).map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mr-2 font-medium">Sort by:</label>
+                                <select
+                                    value={filters.sortBy || "name_asc"}
+                                    onChange={(e) => {
+                                        const sortBy = e.target.value;
+                                        const newFilters = { ...filters, sortBy };
+                                        setFilters(newFilters);
+                                        getChurches(newFilters);
+                                    }}
+                                    className="border p-2 rounded"
+                                >
+                                    <option value="name_asc">Name (A → Z)</option>
+                                    <option value="name_desc">Name (Z → A)</option>
+                                    <option value="shoebox_desc">Shoebox Count (High → Low)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
+                    {churches.length === 0 && !loading && (
+                        <p className="text-red-600 text-sm mt-2">No Churches Found With the Selected Filters</p>
+                    )}
                 </div>
             </div>
 
