@@ -65,27 +65,26 @@ export default function EditChurch() {
     }, [churchName]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     // Apply character limits
     const maxLengths = {
       church_name: 200,
-      first_name: 50,
-      last_name: 50,
-      physical_address: 200,
-      mailing_address: 200,
-      mailing_address2: 200,
-      physical_city: 100,
-      physical_state: 2,
-      physical_zip: 10,
-      physical_county: 100,
-      phone_number: 20,
+      "church_POC_first_name": 50,
+      "church_POC_last_name": 50,
+      "church_physical_address": 200,
+      "church_mailing_address": 200,
+      "church_physical_city": 100,
+      "church_physical_state": 2,
+      "church_physical_zip": 10,
+      "church_physical_county": 100,
+      "church_phone_number": 20,
       church_contact: 100,
-      church_contact_phone: 20,
-      church_contact_email: 100,
+      "church_POC_phone": 20,
+      "church_POC_email": 100,
       notes: 2000,
     };
     
-    const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
+    const processedValue = type === "checkbox" ? checked : (maxLengths[name] ? value.slice(0, maxLengths[name]) : value);
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
 
@@ -143,13 +142,13 @@ export default function EditChurch() {
     e.preventDefault();
     
     // Validate phone numbers
-    if (formData.phone_number && !validatePhoneNumber(formData.phone_number)) {
+    if (formData["church_phone_number"] && !validatePhoneNumber(formData["church_phone_number"])) {
       setError("Please enter a valid phone number (10 digits).");
       return;
     }
     
-    if (formData.church_contact_phone && !validatePhoneNumber(formData.church_contact_phone)) {
-      setError("Please enter a valid church contact phone number (10 digits).");
+    if (formData["church_POC_phone"] && !validatePhoneNumber(formData["church_POC_phone"])) {
+      setError("Please enter a valid POC phone number (10 digits).");
       return;
     }
     
@@ -158,17 +157,17 @@ export default function EditChurch() {
 
     // Convert phone numbers to bigint if they exist
     const updateData = { ...formData };
-        if (updateData.phone_number) {
-            const phoneNumberBigint = String(updateData.phone_number).replace(/\D/g, '');
-            updateData.phone_number = phoneNumberBigint === '' ? null : parseInt(phoneNumberBigint, 10);
+        if (updateData["church_phone_number"]) {
+            const phoneNumberBigint = String(updateData["church_phone_number"]).replace(/\D/g, '');
+            updateData["church_phone_number"] = phoneNumberBigint === '' ? null : parseInt(phoneNumberBigint, 10);
         }
-        if (updateData.church_contact_phone) {
-            const churchContactPhoneBigint = String(updateData.church_contact_phone).replace(/\D/g, '');
-            updateData.church_contact_phone = churchContactPhoneBigint === '' ? null : parseInt(churchContactPhoneBigint, 10);
+        if (updateData["church_POC_phone"]) {
+            const churchPOCPhoneBigint = String(updateData["church_POC_phone"]).replace(/\D/g, '');
+            updateData["church_POC_phone"] = churchPOCPhoneBigint === '' ? null : parseInt(churchPOCPhoneBigint, 10);
         }
 
         // Remove fields that shouldn't be updated via this form
-        const { id, created_at, project_leader, relations_member_2023, relations_member_2024, relations_member_2025, relations_member_2026, shoebox_2022, shoebox_2021, shoebox_2020, shoebox_2019, shoebox_2023, shoebox_2024, shoebox_2025, shoebox_2026, ...fieldsToUpdate } = updateData;
+        const { id, created_at, "church_relations_member_2023": rel2023, "church_relations_member_2024": rel2024, "church_relations_member_2025": rel2025, "church_relations_member_2026": rel2026, shoebox_2022, shoebox_2021, shoebox_2020, shoebox_2019, shoebox_2023, shoebox_2024, shoebox_2025, shoebox_2026, ...fieldsToUpdate } = updateData;
         
         const { error } = await supabase
             .from("church2")
@@ -230,10 +229,10 @@ export default function EditChurch() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Church Phone Number</label>
                             <input
-                                name="phone_number"
-                                value={formData.phone_number || ""}
+                                name="church_phone_number"
+                                value={formData["church_phone_number"] || ""}
                                 onChange={handleChange}
                                 className="w-full border rounded-md px-3 py-2"
                                 required
@@ -242,25 +241,35 @@ export default function EditChurch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">POC First Name</label>
                                 <input
-                                    name="first_name"
-                                    value={formData.first_name || ""}
+                                    name="church_POC_first_name"
+                                    value={formData["church_POC_first_name"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     maxLength={50}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">POC Last Name</label>
                                 <input
-                                    name="last_name"
-                                    value={formData.last_name || ""}
+                                    name="church_POC_last_name"
+                                    value={formData["church_POC_last_name"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     maxLength={50}
                                 />
                             </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Project Leader</label>
+                            <input
+                                name="project_leader"
+                                value={formData.project_leader || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={200}
+                            />
                         </div>
                     </div>
                 </div>
@@ -272,8 +281,8 @@ export default function EditChurch() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
                             <input
-                                name="physical_address"
-                                value={formData.physical_address || ""}
+                                name="church_physical_address"
+                                value={formData["church_physical_address"] || ""}
                                 onChange={handleChange}
                                 className="w-full border rounded-md px-3 py-2"
                                 maxLength={200}
@@ -283,8 +292,8 @@ export default function EditChurch() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                                 <input
-                                    name="physical_city"
-                                    value={formData.physical_city || ""}
+                                    name="church_physical_city"
+                                    value={formData["church_physical_city"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     required
@@ -294,8 +303,8 @@ export default function EditChurch() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                                 <input
-                                    name="physical_state"
-                                    value={formData.physical_state || ""}
+                                    name="church_physical_state"
+                                    value={formData["church_physical_state"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     required
@@ -308,8 +317,8 @@ export default function EditChurch() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
                                 <input
-                                    name="physical_zip"
-                                    value={formData.physical_zip || ""}
+                                    name="church_physical_zip"
+                                    value={formData["church_physical_zip"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     maxLength={10}
@@ -318,8 +327,8 @@ export default function EditChurch() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">County</label>
                                 <input
-                                    name="physical_county"
-                                    value={formData.physical_county || ""}
+                                    name="church_physical_county"
+                                    value={formData["church_physical_county"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     maxLength={100}
@@ -334,20 +343,10 @@ export default function EditChurch() {
                     <h2 className="text-lg font-semibold text-gray-800 mb-4">Mailing Address</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Mailing Address Line 1</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Mailing Address</label>
                             <input
-                                name="mailing_address"
-                                value={formData.mailing_address || ""}
-                                onChange={handleChange}
-                                className="w-full border rounded-md px-3 py-2"
-                                maxLength={200}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Mailing Address Line 2</label>
-                            <input
-                                name="mailing_address2"
-                                value={formData.mailing_address2 || ""}
+                                name="church_mailing_address"
+                                value={formData["church_mailing_address"] || ""}
                                 onChange={handleChange}
                                 className="w-full border rounded-md px-3 py-2"
                                 maxLength={200}
@@ -372,21 +371,21 @@ export default function EditChurch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">POC Phone</label>
                                 <input
-                                    name="church_contact_phone"
-                                    value={formData.church_contact_phone || ""}
+                                    name="church_POC_phone"
+                                    value={formData["church_POC_phone"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     maxLength={20}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">POC Email</label>
                                 <input
-                                    name="church_contact_email"
+                                    name="church_POC_email"
                                     type="email"
-                                    value={formData.church_contact_email || ""}
+                                    value={formData["church_POC_email"] || ""}
                                     onChange={handleChange}
                                     className="w-full border rounded-md px-3 py-2"
                                     maxLength={100}

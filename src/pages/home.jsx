@@ -179,16 +179,49 @@ export default function Home() {
             const searchValue = filterValues.churchName.replace(/ /g, "_");
             query = query.ilike("church_name", `%${searchValue}%`);
         }
-        if (filterValues.zipcode) query = query.eq("physical_zip", filterValues.zipcode);
+        if (filterValues.zipcode) query = query.eq("church_physical_zip", filterValues.zipcode);
         const shoeboxField = `shoebox_${filterValues.selectedYear}`;
         if (filterValues.shoeboxMin) query = query.gte(shoeboxField, filterValues.shoeboxMin);
-        if (filterValues.selectedCounties.length > 0) query = query.in("physical_county", filterValues.selectedCounties);
+        if (filterValues.selectedCounties.length > 0) query = query.in("church_physical_county", filterValues.selectedCounties);
 
         const { data, error } = await query;
         if (error) {
             setChurches([]);
         } else {
-            let sortedData = [...data];
+            // Get current year relations member field
+            const currentYear = new Date().getFullYear();
+            const relationsField = `church_relations_member_${currentYear}`;
+            
+            // Collect all unique team member IDs from relations member fields
+            const teamMemberIds = new Set();
+            data.forEach(church => {
+                if (church[relationsField]) {
+                    teamMemberIds.add(church[relationsField]);
+                }
+            });
+            
+            // Fetch team member names
+            let teamMembersMap = {};
+            if (teamMemberIds.size > 0) {
+                const { data: teamMembersData } = await supabase
+                    .from("team_members")
+                    .select("id, first_name, last_name")
+                    .in("id", Array.from(teamMemberIds));
+                
+                if (teamMembersData) {
+                    teamMembersData.forEach(member => {
+                        teamMembersMap[member.id] = `${member.first_name} ${member.last_name}`;
+                    });
+                }
+            }
+            
+            // Map team member names to churches
+            const churchesWithTeamMembers = data.map(church => ({
+                ...church,
+                relationsMemberName: church[relationsField] ? teamMembersMap[church[relationsField]] || "N/A" : "N/A"
+            }));
+            
+            let sortedData = [...churchesWithTeamMembers];
             const shoeboxField = `shoebox_${filterValues.selectedYear}`;
             if (filterValues.sortBy === "shoebox_desc") {
                 sortedData.sort((a, b) => (b[shoeboxField] || 0) - (a[shoeboxField] || 0));
@@ -381,10 +414,15 @@ export default function Home() {
                     <div key={church.id || church.church_name || `church-card-${index}`} className="bg-white shadow-md rounded-lg p-6 flex flex-col justify-between">
                         <div>
                             <h2 className="text-xl font-bold mb-2">{church.church_name.replace(/_/g, " ")}</h2>
-                            <p className="text-gray-700">{church.physical_city}, {church.physical_state} - <strong>{church.physical_county} County</strong></p>
+                            <p className="text-gray-700">{church["church_physical_city"]}, {church["church_physical_state"]} - <strong>{church["church_physical_county"]} County</strong></p>
                             {church[shoeboxFieldName] !== undefined && <p className="text-gray-700"><strong>Shoebox {filters.selectedYear}:</strong> {church[shoeboxFieldName]}</p>}
-                            {church.physical_zip && <p className="text-gray-700"><strong>Zip Code:</strong> {church.physical_zip}</p>}
-                            {church.project_leader && <p className="text-gray-700"><strong>Project Leader:</strong> {church.project_leader}</p>}
+                            {(church["church_POC_first_name"] || church["church_POC_last_name"]) && (
+                                <p className="text-gray-700"><strong>Person of Contact:</strong> {church["church_POC_first_name"] || ""} {church["church_POC_last_name"] || ""}</p>
+                            )}
+                            {church.project_leader && (
+                                <p className="text-gray-700"><strong>Project Leader:</strong> {church.project_leader}</p>
+                            )}
+                            <p className="text-gray-700"><strong>Church Relations Team Member:</strong> {church.relationsMemberName || "N/A"}</p>
                         </div>
                         {church.photo_url && (
                             <PrivateBucketImage

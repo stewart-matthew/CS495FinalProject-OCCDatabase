@@ -103,7 +103,7 @@ export default function TeamMembers() {
                     if (m.church_affiliation_name) {
                         const { data: church, error: churchError } = await supabase
                             .from("church2")
-                            .select("church_name, physical_county")
+                            .select("church_name, church_physical_county")
                             .eq("church_name", m.church_affiliation_name)
                             .single();
                         
@@ -128,7 +128,7 @@ export default function TeamMembers() {
                         ...m,
                         position: positionsText,
                         church_name: churchData?.church_name || m.church_affiliation_name || null,
-                        church_county: churchData?.physical_county || null,
+                        church_county: churchData?.["church_physical_county"] || null,
                     };
                 })
             );

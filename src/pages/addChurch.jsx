@@ -7,42 +7,47 @@ export default function AddChurch() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     church_name: "",
-    physical_address: "",
-    physical_city: "",
-    physical_state: "",
-    physical_zip: "",
-    physical_county: "",
-    phone_number: "",
+    "church_POC_first_name": "",
+    "church_POC_last_name": "",
+    "church_physical_address": "",
+    "church_physical_city": "",
+    "church_physical_state": "",
+    "church_physical_zip": "",
+    "church_physical_county": "",
+    "church_phone_number": "",
     church_contact: "",
-    church_contact_phone: "",
-    church_contact_email: "",
+    "church_POC_phone": "",
+    "church_POC_email": "",
+    "church_mailing_address": "",
     notes: "",
     photo_url: "",
-    project_leader: "", // Required field in DB
+    project_leader: "", // Project leader name
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     // Apply character limits
     const maxLengths = {
       church_name: 200,
-      physical_address: 200,
-      physical_city: 100,
-      physical_state: 2,
-      physical_zip: 10,
-      physical_county: 100,
-      phone_number: 20,
+      "church_POC_first_name": 50,
+      "church_POC_last_name": 50,
+      "church_physical_address": 200,
+      "church_physical_city": 100,
+      "church_physical_state": 2,
+      "church_physical_zip": 10,
+      "church_physical_county": 100,
+      "church_phone_number": 20,
       church_contact: 100,
-      church_contact_phone: 20,
-      church_contact_email: 100,
+      "church_POC_phone": 20,
+      "church_POC_email": 100,
+      "church_mailing_address": 200,
       notes: 2000,
-      project_leader: 200,
     };
     
-    const processedValue = maxLengths[name] ? value.slice(0, maxLengths[name]) : value;
+    const processedValue = type === "checkbox" ? checked : (maxLengths[name] ? value.slice(0, maxLengths[name]) : value);
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
 
@@ -101,19 +106,19 @@ export default function AddChurch() {
     setError(null);
 
     // Validate required fields
-    if (!formData.physical_city || !formData.physical_city.trim()) {
+    if (!formData["church_physical_city"] || !formData["church_physical_city"].trim()) {
       setError("City is required.");
       setLoading(false);
       return;
     }
     
-    if (!formData.physical_state || !formData.physical_state.trim()) {
+    if (!formData["church_physical_state"] || !formData["church_physical_state"].trim()) {
       setError("State is required.");
       setLoading(false);
       return;
     }
     
-    if (!formData.phone_number || !formData.phone_number.trim()) {
+    if (!formData["church_phone_number"] || !formData["church_phone_number"].trim()) {
       setError("Phone number is required.");
       setLoading(false);
       return;
@@ -126,49 +131,50 @@ export default function AddChurch() {
     }
 
     // Validate phone numbers
-    if (!validatePhoneNumber(formData.phone_number)) {
+    if (!validatePhoneNumber(formData["church_phone_number"])) {
       setError("Please enter a valid phone number (10 digits).");
       setLoading(false);
       return;
     }
     
-    if (formData.church_contact_phone && !validatePhoneNumber(formData.church_contact_phone)) {
-      setError("Please enter a valid church contact phone number (10 digits).");
+    if (formData["church_POC_phone"] && !validatePhoneNumber(formData["church_POC_phone"])) {
+      setError("Please enter a valid POC phone number (10 digits).");
       setLoading(false);
       return;
     }
 
     // Convert phone numbers to bigint (remove non-digits and convert)
-    const phoneNumberBigint = formData.phone_number.replace(/\D/g, '');
-    const churchContactPhoneBigint = formData.church_contact_phone 
-      ? formData.church_contact_phone.replace(/\D/g, '') 
+    const phoneNumberBigint = formData["church_phone_number"].replace(/\D/g, '');
+    const churchPOCPhoneBigint = formData["church_POC_phone"] 
+      ? formData["church_POC_phone"].replace(/\D/g, '') 
       : null;
 
     const { error } = await supabase.from("church2").insert([
       {
         church_name: formData.church_name,
+        "church_POC_first_name": formData["church_POC_first_name"] || null,
+        "church_POC_last_name": formData["church_POC_last_name"] || null,
         project_leader: formData.project_leader,
-        physical_address: formData.physical_address || null,
-        physical_city: formData.physical_city,
-        physical_state: formData.physical_state,
-        physical_zip: formData.physical_zip || null,
-        physical_county: formData.physical_county || null,
-        phone_number: parseInt(phoneNumberBigint, 10),
+        "church_physical_address": formData["church_physical_address"] || null,
+        "church_physical_city": formData["church_physical_city"],
+        "church_physical_state": formData["church_physical_state"],
+        "church_physical_zip": formData["church_physical_zip"] || null,
+        "church_physical_county": formData["church_physical_county"] || null,
+        "church_phone_number": parseInt(phoneNumberBigint, 10),
         church_contact: formData.church_contact || null,
-        church_contact_phone: churchContactPhoneBigint ? parseInt(churchContactPhoneBigint, 10) : null,
-        church_contact_email: formData.church_contact_email || null,
+        "church_POC_phone": churchPOCPhoneBigint ? parseInt(churchPOCPhoneBigint, 10) : null,
+        "church_POC_email": formData["church_POC_email"] || null,
+        "church_mailing_address": formData["church_mailing_address"] || null,
         notes: formData.notes || null,
         photo_url: formData.photo_url || null,
-        mailing_address: formData.physical_address || null, // Use physical address as mailing address
-        mailing_address2: null,
         created_at: new Date().toISOString(),
         // Hidden defaults for optional fields:
         shoebox_2023: null,
         shoebox_2024: null,
         shoebox_2025: null,
-        relations_member_2023: null,
-        relations_member_2024: null,
-        relations_member_2025: null,
+        "church_relations_member_2023": null,
+        "church_relations_member_2024": null,
+        "church_relations_member_2025": null,
       },
     ]);
 
@@ -196,9 +202,27 @@ export default function AddChurch() {
           className="w-full border rounded-lg p-2"
           maxLength={200}
         />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            name="church_POC_first_name"
+            value={formData["church_POC_first_name"]}
+            onChange={handleChange}
+            placeholder="POC First Name"
+            className="border rounded-lg p-2"
+            maxLength={50}
+          />
+          <input
+            name="church_POC_last_name"
+            value={formData["church_POC_last_name"]}
+            onChange={handleChange}
+            placeholder="POC Last Name"
+            className="border rounded-lg p-2"
+            maxLength={50}
+          />
+        </div>
         <input
-          name="physical_address"
-          value={formData.physical_address}
+          name="church_physical_address"
+          value={formData["church_physical_address"]}
           onChange={handleChange}
           placeholder="Physical Address"
           className="w-full border rounded-lg p-2"
@@ -206,8 +230,8 @@ export default function AddChurch() {
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
-            name="physical_city"
-            value={formData.physical_city}
+            name="church_physical_city"
+            value={formData["church_physical_city"]}
             onChange={handleChange}
             placeholder="City"
             required
@@ -215,8 +239,8 @@ export default function AddChurch() {
             maxLength={100}
           />
           <input
-            name="physical_state"
-            value={formData.physical_state}
+            name="church_physical_state"
+            value={formData["church_physical_state"]}
             onChange={handleChange}
             placeholder="State"
             required
@@ -226,16 +250,16 @@ export default function AddChurch() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
-            name="physical_zip"
-            value={formData.physical_zip}
+            name="church_physical_zip"
+            value={formData["church_physical_zip"]}
             onChange={handleChange}
             placeholder="ZIP Code"
             className="border rounded-lg p-2"
             maxLength={10}
           />
           <input
-            name="physical_county"
-            value={formData.physical_county}
+            name="church_physical_county"
+            value={formData["church_physical_county"]}
             onChange={handleChange}
             placeholder="County"
             className="border rounded-lg p-2"
@@ -243,13 +267,21 @@ export default function AddChurch() {
           />
         </div>
         <input
-          name="phone_number"
-          value={formData.phone_number}
+          name="church_phone_number"
+          value={formData["church_phone_number"]}
           onChange={handleChange}
-          placeholder="Phone Number"
+          placeholder="Church Phone Number"
           required
           className="w-full border rounded-lg p-2"
           maxLength={20}
+        />
+        <input
+          name="church_mailing_address"
+          value={formData["church_mailing_address"]}
+          onChange={handleChange}
+          placeholder="Mailing Address"
+          className="w-full border rounded-lg p-2"
+          maxLength={200}
         />
         <input
           name="church_contact"
@@ -260,19 +292,19 @@ export default function AddChurch() {
           maxLength={100}
         />
         <input
-          name="church_contact_phone"
-          value={formData.church_contact_phone}
+          name="church_POC_phone"
+          value={formData["church_POC_phone"]}
           onChange={handleChange}
-          placeholder="Church Contact Phone"
+          placeholder="POC Phone"
           className="w-full border rounded-lg p-2"
           maxLength={20}
         />
         <input
-          name="church_contact_email"
+          name="church_POC_email"
           type="email"
-          value={formData.church_contact_email}
+          value={formData["church_POC_email"]}
           onChange={handleChange}
-          placeholder="Church Contact Email"
+          placeholder="POC Email"
           className="w-full border rounded-lg p-2"
           maxLength={100}
         />
@@ -281,7 +313,6 @@ export default function AddChurch() {
           value={formData.project_leader}
           onChange={handleChange}
           placeholder="Project Leader (First Last)"
-          required
           className="w-full border rounded-lg p-2"
           maxLength={200}
         />

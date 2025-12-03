@@ -31,7 +31,7 @@ export default function ChurchPage() {
   
   // Get current year dynamically - automatically switches to 2026 when the year changes
   const SHOEBOX_YEAR = new Date().getFullYear();
-  const relationsFieldName = `relations_member_${SHOEBOX_YEAR}`; 
+  const relationsFieldName = `church_relations_member_${SHOEBOX_YEAR}`; 
 
   useEffect(() => {
     async function getChurch() {
@@ -46,7 +46,7 @@ export default function ChurchPage() {
       
       // If city is provided in query params, filter by city to get the exact match
       if (city) {
-        query = query.ilike("physical_city", `%${city}%`);
+        query = query.ilike("church_physical_city", `%${city}%`);
       }
       
       const { data, error } = await query.maybeSingle();
@@ -338,7 +338,7 @@ export default function ChurchPage() {
   const handleEditProjectLeader = () => {
     if (!isAdmin) return;
     setIsEditingProjectLeader(true);
-    // Set current project leader as selected
+    // Set current project leader value (name from individuals)
     if (church.project_leader) {
       // Find matching individual by matching "First Last" format
       const matchingIndividual = individuals.find(ind => 
@@ -442,11 +442,14 @@ export default function ChurchPage() {
             
             {/* Basic Contact Information */}
             <div className="space-y-2 text-gray-700 mb-4">
-              {church.phone_number && (
-                <p><strong>Phone:</strong> {church.phone_number}</p>
+              {church["church_phone_number"] && (
+                <p><strong>Phone:</strong> {church["church_phone_number"]}</p>
               )}
-              {church.first_name && church.last_name && (
-                <p><strong>Contact Person:</strong> {church.first_name} {church.last_name}</p>
+              {church["church_POC_first_name"] && church["church_POC_last_name"] && (
+                <p><strong>Person of Contact:</strong> {church["church_POC_first_name"]} {church["church_POC_last_name"]}</p>
+              )}
+              {church.project_leader && (
+                <p><strong>Project Leader:</strong> {church.project_leader}</p>
               )}
             </div>
 
@@ -519,46 +522,45 @@ export default function ChurchPage() {
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-2">Physical Address</h2>
               <div className="space-y-1 text-gray-700">
-                {church.physical_address && (
-                  <p>{church.physical_address}</p>
+                {church["church_physical_address"] && (
+                  <p>{church["church_physical_address"]}</p>
                 )}
                 <p>
                   {[
-                    church.physical_city,
-                    church.physical_state,
-                    church.physical_zip
+                    church["church_physical_city"],
+                    church["church_physical_state"],
+                    church["church_physical_zip"]
                   ].filter(Boolean).join(", ")}
                 </p>
-                {church.physical_county && (
-                  <p>{church.physical_county} County</p>
+                {church["church_physical_county"] && (
+                  <p>{church["church_physical_county"]} County</p>
                 )}
               </div>
             </div>
 
             {/* Mailing Address (if different) */}
-            {(church.mailing_address || church.mailing_address2) && (
+            {church["church_mailing_address"] && (
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-gray-800 mb-2">Mailing Address</h2>
                 <div className="space-y-1 text-gray-700">
-                  {church.mailing_address && <p>{church.mailing_address}</p>}
-                  {church.mailing_address2 && <p>{church.mailing_address2}</p>}
+                  {church["church_mailing_address"] && <p>{church["church_mailing_address"]}</p>}
                 </div>
               </div>
             )}
 
             {/* Church Contact Information */}
-            {(church.church_contact || church.church_contact_phone || church.church_contact_email) && (
+            {(church.church_contact || church["church_POC_phone"] || church["church_POC_email"]) && (
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-gray-800 mb-2">Church Contact</h2>
                 <div className="space-y-1 text-gray-700">
                   {church.church_contact && (
                     <p><strong>Contact Name:</strong> {church.church_contact}</p>
                   )}
-                  {church.church_contact_phone && (
-                    <p><strong>Contact Phone:</strong> {church.church_contact_phone}</p>
+                  {church["church_POC_phone"] && (
+                    <p><strong>POC Phone:</strong> {church["church_POC_phone"]}</p>
                   )}
-                  {church.church_contact_email && (
-                    <p><strong>Contact Email:</strong> {church.church_contact_email}</p>
+                  {church["church_POC_email"] && (
+                    <p><strong>POC Email:</strong> {church["church_POC_email"]}</p>
                   )}
                 </div>
               </div>

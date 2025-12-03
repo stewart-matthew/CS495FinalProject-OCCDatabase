@@ -76,7 +76,7 @@ export default function TeamMemberPage() {
             if (memberData.church_affiliation_name) {
                 const { data: churchData, error: churchError } = await supabase
                     .from("church2")
-                    .select("church_name, physical_city, physical_state, phone_number, physical_zip")
+                    .select("church_name, church_physical_city, church_physical_state, church_phone_number, church_physical_zip")
                     .eq("church_name", memberData.church_affiliation_name)
                     .single();
 
@@ -98,11 +98,11 @@ export default function TeamMemberPage() {
 
             setChurchesLoading(true);
             const currentYear = new Date().getFullYear();
-            const relationsField = `relations_member_${currentYear}`;
+            const relationsField = `church_relations_member_${currentYear}`;
 
             const { data: churchesData, error } = await supabase
                 .from("church2")
-                .select("id, church_name, physical_city, physical_state, physical_county")
+                .select("id, church_name, church_physical_city, church_physical_state, church_physical_county")
                 .eq(relationsField, member.id)
                 .order("church_name", { ascending: true });
 
@@ -198,10 +198,10 @@ export default function TeamMemberPage() {
                                         {church.church_name?.replace(/_/g, " ") || "N/A"}
                                     </button>
                                 </p>
-                                <p><strong>City:</strong> {church.physical_city || "N/A"}</p>
-                                <p><strong>State:</strong> {church.physical_state || "N/A"}</p>
-                                <p><strong>Zip:</strong> {church.physical_zip || "N/A"}</p>
-                                <p><strong>Phone:</strong> {church.phone_number || "N/A"}</p>
+                                <p><strong>City:</strong> {church["church_physical_city"] || "N/A"}</p>
+                                <p><strong>State:</strong> {church["church_physical_state"] || "N/A"}</p>
+                                <p><strong>Zip:</strong> {church["church_physical_zip"] || "N/A"}</p>
+                                <p><strong>Phone:</strong> {church["church_phone_number"] || "N/A"}</p>
                             </div>
                         )}
                     </div>
@@ -231,8 +231,8 @@ export default function TeamMemberPage() {
                                             </button>
                                         </p>
                                         <p className="text-sm text-gray-600 mt-1">
-                                            {church.physical_city}, {church.physical_state}
-                                            {church.physical_county && ` - ${church.physical_county} County`}
+                                            {church["church_physical_city"]}, {church["church_physical_state"]}
+                                            {church["church_physical_county"] && ` - ${church["church_physical_county"]} County`}
                                         </p>
                                     </div>
                                     <button

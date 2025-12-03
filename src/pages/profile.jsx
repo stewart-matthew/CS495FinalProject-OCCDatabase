@@ -105,12 +105,12 @@ export default function Profile() {
                     const dbChurchName = member.church_affiliation_name.replace(/ /g, "_");
                     let churchQuery = supabase
                         .from("church2")
-                        .select("id, church_name, physical_city, physical_state")
+                        .select("id, church_name, church_physical_city, church_physical_state")
                         .eq("church_name", dbChurchName);
                     
                     // If we have city info, filter by city to get the exact match
                     if (member.church_affiliation_city) {
-                        churchQuery = churchQuery.ilike("physical_city", `%${member.church_affiliation_city}%`);
+                        churchQuery = churchQuery.ilike("church_physical_city", `%${member.church_affiliation_city}%`);
                     }
                     
                     const { data: churchData, error: churchError } = await churchQuery.maybeSingle();
@@ -193,26 +193,20 @@ export default function Profile() {
 
             setChurchesLoading(true);
             const currentYear = new Date().getFullYear(); // Automatically updates when year changes
-            const relationsField = `relations_member_${currentYear}`;
-            const userFullName = `${memberData.first_name} ${memberData.last_name}`;
+            const relationsField = `church_relations_member_${currentYear}`;
 
-            // Fetch churches where user is the lead (relations_member_YEAR)
+            // Fetch churches where user is the lead (church_relations_member_YEAR)
             const { data: leadChurches, error: leadError } = await supabase
                 .from("church2")
-                .select("id, church_name, physical_city, physical_state")
+                .select("id, church_name, church_physical_city, church_physical_state")
                 .eq(relationsField, memberData.id);
 
-            // Fetch churches where user is the project leader
-            const { data: projectLeaderChurches, error: projectLeaderError } = await supabase
-                .from("church2")
-                .select("id, church_name, physical_city, physical_state")
-                .eq("project_leader", userFullName);
+            // Note: project_leader is now a boolean, not a name field
+            // We don't fetch churches by project_leader name anymore
+            const projectLeaderChurches = [];
 
             if (leadError) {
                 // Error fetching lead churches
-            }
-            if (projectLeaderError) {
-                // Error fetching project leader churches
             }
 
             // Combine both results and remove duplicates
@@ -732,7 +726,7 @@ export default function Profile() {
                                             {church.church_name?.replace(/_/g, " ") || "Unknown"}
                                         </div>
                                         <div className="text-sm text-gray-600">
-                                            {church.physical_city}, {church.physical_state}
+                                            {church["church_physical_city"]}, {church["church_physical_state"]}
                                         </div>
                                     </div>
                                     <button
