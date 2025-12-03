@@ -161,7 +161,7 @@ export default function Home() {
         churchName: "",
         zipcode: "",
         shoeboxMin: "",
-        sortBy: "",
+        sortBy: "name_asc", // Default to alphabetical
         selectedCounties: [],
         selectedYear: currentYear,
     });
@@ -173,6 +173,7 @@ export default function Home() {
     // Fetch churches with optional filters
     async function getChurches(filterValues = filters) {
         setLoading(true);
+        // Explicitly select all fields including relations member fields
         let query = supabase.from("church2").select("*");
 
         if (filterValues.churchName) {
@@ -193,42 +194,132 @@ export default function Home() {
             const relationsField = `church_relations_member_${currentYear}`;
             
             // Collect all unique team member IDs from relations member fields
+            // Note: church_relations_member_* fields are text type, storing team member IDs
             const teamMemberIds = new Set();
             data.forEach(church => {
-                if (church[relationsField]) {
-                    teamMemberIds.add(church[relationsField]);
+                const relationsId = church[relationsField];
+                if (relationsId) {
+                    // Store as string and trim whitespace
+                    const idStr = String(relationsId).trim();
+                    if (idStr && idStr !== "null" && idStr !== "undefined") {
+                        teamMemberIds.add(idStr);
+                        // Also add original (in case of any formatting differences)
+                        teamMemberIds.add(String(relationsId));
+                    }
                 }
             });
             
             // Fetch team member names
             let teamMembersMap = {};
             if (teamMemberIds.size > 0) {
-                const { data: teamMembersData } = await supabase
-                    .from("team_members")
-                    .select("id, first_name, last_name")
-                    .in("id", Array.from(teamMemberIds));
-                
-                if (teamMembersData) {
-                    teamMembersData.forEach(member => {
-                        teamMembersMap[member.id] = `${member.first_name} ${member.last_name}`;
+                // Convert to array and filter out empty strings and invalid values
+                const idArray = Array.from(teamMemberIds).filter(id => id && id !== "null" && id !== "undefined" && id.trim() !== "");
+                if (idArray.length > 0) {
+                    // Query team members - Supabase should handle UUID conversion from text automatically
+                    // But we'll ensure IDs are valid UUID format strings
+                    const validUuidArray = idArray.filter(id => {
+                        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                        return uuidRegex.test(String(id).trim());
                     });
+                    
+                    if (validUuidArray.length > 0) {
+                        const { data: teamMembersData, error: teamError } = await supabase
+                            .from("team_members")
+                            .select("id, first_name, last_name")
+                            .in("id", validUuidArray);
+                        
+                        if (teamError) {
+                            console.error("Error fetching team members:", teamError, "IDs queried:", validUuidArray);
+                        }
+                        
+                        if (teamMembersData && teamMembersData.length > 0) {
+                            teamMembersData.forEach(member => {
+                                const memberName = `${member.first_name} ${member.last_name}`;
+                                // Store with multiple formats for flexible lookup
+                                const memberId = member.id;
+                                const memberIdStr = String(memberId).trim();
+                                const memberIdLower = memberIdStr.toLowerCase();
+                                
+                                // Store with various formats to ensure we can find it
+                                teamMembersMap[memberIdStr] = memberName;
+                                teamMembersMap[String(memberId)] = memberName;
+                                teamMembersMap[memberIdLower] = memberName;
+                                // Also store the UUID object if it exists
+                                if (memberId) {
+                                    teamMembersMap[memberId] = memberName;
+                                }
+                            });
+                        }
+                    }
                 }
             }
             
-            // Map team member names to churches
-            const churchesWithTeamMembers = data.map(church => ({
-                ...church,
-                relationsMemberName: church[relationsField] ? teamMembersMap[church[relationsField]] || "N/A" : "N/A"
-            }));
+            // Map team member names to churches and determine project leader name
+            const churchesWithTeamMembers = data.map(church => {
+                // Get POC name - use email as fallback if name is empty
+                const pocFirstName = church["church_POC_first_name"] || "";
+                const pocLastName = church["church_POC_last_name"] || "";
+                let pocName = `${pocFirstName} ${pocLastName}`.trim();
+                if (!pocName && church["church_POC_email"]) {
+                    pocName = church["church_POC_email"];
+                }
+                
+                // Determine project leader name
+                let projectLeaderName = "N/A";
+                if (church.project_leader === true) {
+                    // POC is the project leader
+                    projectLeaderName = pocName || "N/A";
+                } else if (church.project_leader === false) {
+                    // Different person
+                    projectLeaderName = "Different from POC";
+                }
+                
+                // Get relations member name - check if the ID exists in our map
+                const relationsMemberId = church[relationsField];
+                let relationsMemberName = "N/A";
+                if (relationsMemberId) {
+                    // Convert to string for consistent lookup - handle both UUID and text formats
+                    const memberIdStr = String(relationsMemberId).trim();
+                    const memberIdLower = memberIdStr.toLowerCase();
+                    
+                    // Try multiple lookup strategies
+                    if (teamMembersMap[memberIdStr]) {
+                        relationsMemberName = teamMembersMap[memberIdStr];
+                    } else if (teamMembersMap[memberIdLower]) {
+                        relationsMemberName = teamMembersMap[memberIdLower];
+                    } else if (teamMembersMap[String(relationsMemberId)]) {
+                        relationsMemberName = teamMembersMap[String(relationsMemberId)];
+                    } else {
+                        // Try case-insensitive match and also check all keys
+                        const foundKey = Object.keys(teamMembersMap).find(key => 
+                            key.toLowerCase() === memberIdLower || 
+                            key.trim().toLowerCase() === memberIdLower ||
+                            String(key).toLowerCase() === memberIdLower
+                        );
+                        if (foundKey) {
+                            relationsMemberName = teamMembersMap[foundKey];
+                        }
+                    }
+                }
+                
+                return {
+                    ...church,
+                    relationsMemberName: relationsMemberName,
+                    projectLeaderName: projectLeaderName,
+                    pocName: pocName
+                };
+            });
             
+            // Sort by church name alphabetically by default
             let sortedData = [...churchesWithTeamMembers];
             const shoeboxField = `shoebox_${filterValues.selectedYear}`;
             if (filterValues.sortBy === "shoebox_desc") {
                 sortedData.sort((a, b) => (b[shoeboxField] || 0) - (a[shoeboxField] || 0));
-            } else if (filterValues.sortBy === "name_asc") {
-                sortedData.sort((a, b) => a.church_name.localeCompare(b.church_name));
             } else if (filterValues.sortBy === "name_desc") {
                 sortedData.sort((a, b) => b.church_name.localeCompare(a.church_name));
+            } else {
+                // Default: alphabetical by name (name_asc or no sort specified)
+                sortedData.sort((a, b) => a.church_name.localeCompare(b.church_name));
             }
             setChurches(sortedData);
         }
@@ -389,7 +480,7 @@ export default function Home() {
                         <div>
                             <label className="mr-2 font-medium">Sort by:</label>
                             <select
-                                value={filters.sortBy || ""}
+                                value={filters.sortBy || "name_asc"}
                                 onChange={(e) => {
                                     const sortBy = e.target.value;
                                     const newFilters = { ...filters, sortBy };
@@ -398,10 +489,9 @@ export default function Home() {
                                 }}
                                 className="border p-2 rounded"
                             >
-                                <option value="">Select...</option>
-                                <option value="shoebox_desc">Shoebox Count (High → Low)</option>
                                 <option value="name_asc">Name (A → Z)</option>
                                 <option value="name_desc">Name (Z → A)</option>
+                                <option value="shoebox_desc">Shoebox Count (High → Low)</option>
                             </select>
                         </div>
                     </div>
@@ -416,13 +506,16 @@ export default function Home() {
                             <h2 className="text-xl font-bold mb-2">{church.church_name.replace(/_/g, " ")}</h2>
                             <p className="text-gray-700">{church["church_physical_city"]}, {church["church_physical_state"]} - <strong>{church["church_physical_county"]} County</strong></p>
                             {church[shoeboxFieldName] !== undefined && <p className="text-gray-700"><strong>Shoebox {filters.selectedYear}:</strong> {church[shoeboxFieldName]}</p>}
-                            {(church["church_POC_first_name"] || church["church_POC_last_name"]) && (
-                                <p className="text-gray-700"><strong>Person of Contact:</strong> {church["church_POC_first_name"] || ""} {church["church_POC_last_name"] || ""}</p>
+                            {church.pocName && (
+                                <p className="text-gray-700"><strong>Person of Contact:</strong> {church.pocName}</p>
                             )}
-                            {church.project_leader && (
-                                <p className="text-gray-700"><strong>Project Leader:</strong> {church.project_leader}</p>
+                            {!church.pocName && church["church_POC_email"] && (
+                                <p className="text-gray-700"><strong>Person of Contact:</strong> {church["church_POC_email"]}</p>
                             )}
-                            <p className="text-gray-700"><strong>Church Relations Team Member:</strong> {church.relationsMemberName || "N/A"}</p>
+                            <p className="text-gray-700">
+                                <strong>Project Leader:</strong> {church.projectLeaderName || "N/A"}
+                            </p>
+                            <p className="text-gray-700"><strong>Church Relations Team Member:</strong> {church.relationsMemberName}</p>
                         </div>
                         {church.photo_url && (
                             <PrivateBucketImage

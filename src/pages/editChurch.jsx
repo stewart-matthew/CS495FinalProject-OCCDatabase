@@ -262,14 +262,17 @@ export default function EditChurch() {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Project Leader</label>
-                            <input
-                                name="project_leader"
-                                value={formData.project_leader || ""}
-                                onChange={handleChange}
-                                className="w-full border rounded-md px-3 py-2"
-                                maxLength={200}
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Is POC the Project Leader?</label>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    name="project_leader"
+                                    checked={formData.project_leader || false}
+                                    onChange={handleChange}
+                                    className="w-4 h-4"
+                                />
+                                <span>Yes, the POC is the Project Leader</span>
+                            </label>
                         </div>
                     </div>
                 </div>

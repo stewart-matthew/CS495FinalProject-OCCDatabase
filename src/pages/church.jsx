@@ -19,7 +19,7 @@ export default function ChurchPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [isEditingProjectLeader, setIsEditingProjectLeader] = useState(false);
-  const [selectedProjectLeader, setSelectedProjectLeader] = useState("");
+  const [selectedProjectLeader, setSelectedProjectLeader] = useState(false);
   const [savingProjectLeader, setSavingProjectLeader] = useState(false);
   const [isEditingRelationsMember, setIsEditingRelationsMember] = useState(false);
   const [selectedRelationsMember, setSelectedRelationsMember] = useState("");
@@ -338,25 +338,13 @@ export default function ChurchPage() {
   const handleEditProjectLeader = () => {
     if (!isAdmin) return;
     setIsEditingProjectLeader(true);
-    // Set current project leader value (name from individuals)
-    if (church.project_leader) {
-      // Find matching individual by matching "First Last" format
-      const matchingIndividual = individuals.find(ind => 
-        `${ind.first_name} ${ind.last_name}` === church.project_leader
-      );
-      if (matchingIndividual) {
-        setSelectedProjectLeader(matchingIndividual.id);
-      } else {
-        setSelectedProjectLeader("");
-      }
-    } else {
-      setSelectedProjectLeader("");
-    }
+    // Set current project leader value (boolean)
+    setSelectedProjectLeader(church.project_leader || false);
   };
 
   const handleCancelEditProjectLeader = () => {
     setIsEditingProjectLeader(false);
-    setSelectedProjectLeader("");
+    setSelectedProjectLeader(false);
   };
 
   const handleSaveProjectLeader = async () => {
@@ -364,26 +352,20 @@ export default function ChurchPage() {
     
     setSavingProjectLeader(true);
     
-    // Get selected individual's name
-    const selectedIndividual = individuals.find(ind => ind.id === selectedProjectLeader);
-    const projectLeaderName = selectedIndividual 
-      ? `${selectedIndividual.first_name} ${selectedIndividual.last_name}`
-      : null;
-
     // Convert spaces to underscores to match database format
     const dbChurchName = church.church_name.replace(/ /g, "_");
     const { error } = await supabase
       .from("church2")
-      .update({ project_leader: projectLeaderName })
+      .update({ project_leader: selectedProjectLeader })
       .eq("church_name", dbChurchName);
 
     if (error) {
       alert("Failed to update project leader. Please try again.");
     } else {
       // Update local state
-      setChurch({ ...church, project_leader: projectLeaderName });
+      setChurch({ ...church, project_leader: selectedProjectLeader });
       setIsEditingProjectLeader(false);
-      setSelectedProjectLeader("");
+      setSelectedProjectLeader(false);
     }
     setSavingProjectLeader(false);
   };
@@ -448,9 +430,11 @@ export default function ChurchPage() {
               {church["church_POC_first_name"] && church["church_POC_last_name"] && (
                 <p><strong>Person of Contact:</strong> {church["church_POC_first_name"]} {church["church_POC_last_name"]}</p>
               )}
-              {church.project_leader && (
-                <p><strong>Project Leader:</strong> {church.project_leader}</p>
-              )}
+              <p><strong>Project Leader:</strong> {
+                church.project_leader === true
+                  ? `${church["church_POC_first_name"] || ""} ${church["church_POC_last_name"] || ""}`.trim() || "POC"
+                  : "Different from POC"
+              }</p>
             </div>
 
             {/* Shoebox Counts Section */}
@@ -587,22 +571,19 @@ export default function ChurchPage() {
           </div>
           
           <div className="text-gray-700 mb-2 flex items-center gap-2">
-            <span><strong>Project Leader:</strong></span>
+            <span><strong>Is POC the Project Leader?</strong></span>
             {isEditingProjectLeader && isAdmin ? (
               <div className="flex items-center gap-2">
-                <select
-                  value={selectedProjectLeader}
-                  onChange={(e) => setSelectedProjectLeader(e.target.value)}
-                  className="border rounded-md p-1"
-                  disabled={savingProjectLeader}
-                >
-                  <option value="">None</option>
-                  {individuals.map((ind) => (
-                    <option key={ind.id} value={ind.id}>
-                      {ind.first_name} {ind.last_name}
-                    </option>
-                  ))}
-                </select>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedProjectLeader}
+                    onChange={(e) => setSelectedProjectLeader(e.target.checked)}
+                    disabled={savingProjectLeader}
+                    className="w-4 h-4"
+                  />
+                  <span>Yes, the POC is the Project Leader</span>
+                </label>
                 <button
                   onClick={handleSaveProjectLeader}
                   disabled={savingProjectLeader}
@@ -620,7 +601,7 @@ export default function ChurchPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span>{church.project_leader || "N/A"}</span>
+                <span>{church.project_leader === true ? "Yes" : "No"}</span>
                 {isAdmin && (
                   <button
                     onClick={handleEditProjectLeader}

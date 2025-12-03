@@ -21,7 +21,7 @@ export default function AddChurch() {
     "church_mailing_address": "",
     notes: "",
     photo_url: "",
-    project_leader: "", // Project leader name
+    project_leader: false, // Boolean: TRUE = POC is project leader, FALSE = different person
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -120,12 +120,6 @@ export default function AddChurch() {
     
     if (!formData["church_phone_number"] || !formData["church_phone_number"].trim()) {
       setError("Phone number is required.");
-      setLoading(false);
-      return;
-    }
-    
-    if (!formData.project_leader || !formData.project_leader.trim()) {
-      setError("Project leader is required.");
       setLoading(false);
       return;
     }
@@ -308,14 +302,16 @@ export default function AddChurch() {
           className="w-full border rounded-lg p-2"
           maxLength={100}
         />
-        <input
-          name="project_leader"
-          value={formData.project_leader}
-          onChange={handleChange}
-          placeholder="Project Leader (First Last)"
-          className="w-full border rounded-lg p-2"
-          maxLength={200}
-        />
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="project_leader"
+            checked={formData.project_leader}
+            onChange={handleChange}
+            className="w-4 h-4"
+          />
+          <span>POC is the Project Leader</span>
+        </label>
         <textarea
           name="notes"
           value={formData.notes}
