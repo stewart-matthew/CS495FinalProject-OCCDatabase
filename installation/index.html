@@ -98,15 +98,19 @@
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-bs-level="2"><a href="#2-running-the-web-app-with-docker-recommended" class="nav-link">2. Running the Web App with Docker (Recommended)</a>
+            <li class="nav-item" data-bs-level="2"><a href="#2-running-with-docker-recommended" class="nav-link">2. Running with Docker (Recommended)</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-bs-level="2"><a href="#3-documentation-website-mkdocs" class="nav-link">3. Documentation Website (MkDocs)</a>
+            <li class="nav-item" data-bs-level="2"><a href="#3-hosting-on-render-recommended" class="nav-link">3. Hosting on Render (Recommended)</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-bs-level="2"><a href="#4-external-resources-used" class="nav-link">4. External Resources Used</a>
+            <li class="nav-item" data-bs-level="2"><a href="#4-external-resources" class="nav-link">4. External Resources</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#getting-help" class="nav-link">Getting Help</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -118,81 +122,211 @@
                     <div class="col-md-9" role="main">
 
 <h1 id="installation-guide">Installation Guide</h1>
-<p>This document explains how to install the OCC Database application in your environment.</p>
+<p>This document explains how to install and deploy the OCC Database application.</p>
+<hr />
 <h2 id="requirements">Requirements</h2>
+<p>Before getting started, ensure you have the following:</p>
 <ul>
-<li>Node.js</li>
-<li>Supabase</li>
-<li>Optional: Docker</li>
-<li>Optional: Python for docs</li>
+<li><strong>Node.js</strong> – JavaScript runtime for running the web app locally</li>
+<li><strong>Supabase Account</strong> – Free database and authentication service</li>
+<li><strong>Git</strong> – For cloning the repository</li>
+<li><strong>Docker</strong> (optional) – For containerized deployment</li>
+<li><strong>GitHub Account</strong> (optional) – For Render deployments</li>
 </ul>
+<hr />
 <h2 id="1-running-the-web-app-locally">1. Running the Web App Locally</h2>
-<h3 id="step-1-clone-the-repository">Step 1 — Clone the Repository</h3>
+<h3 id="step-1-clone-the-repository">Step 1: Clone the Repository</h3>
 <pre><code class="language-bash">git clone https://github.com/stewart-matthew/CS495FinalProject-OCCDatabase.git
 cd CS495FinalProject-OCCDatabase
 </code></pre>
-<h3 id="step-2-install-node-dependencies">Step 2 — Install Node Dependencies</h3>
+<h3 id="step-2-install-node-dependencies">Step 2: Install Node Dependencies</h3>
 <pre><code class="language-bash">npm install
 </code></pre>
-<p>This installs React, Supabase JS, Tailwind, and other dependencies.</p>
-<h3 id="step-3-add-environment-variables">Step 3 — Add Environment Variables</h3>
-<p>Create a file named <code>.env</code> in the root of the project:</p>
+<p>This installs React, Supabase JS, Tailwind CSS, and other dependencies.</p>
+<h3 id="step-3-add-environment-variables">Step 3: Add Environment Variables</h3>
+<p>Create a <code>.env</code> file in the root directory with your Supabase credentials:</p>
 <pre><code>REACT_APP_SUPABASE_URL=your_supabase_url
 REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
 </code></pre>
-<h3 id="step-4-run-the-web-app-locally">Step 4 — Run the Web App Locally</h3>
+<h3 id="step-4-run-the-development-server">Step 4: Run the Development Server</h3>
 <pre><code class="language-bash">npm start
 </code></pre>
-<p>Then visit: <code>http://localhost:3000</code></p>
+<p>The web app will automatically open at <strong>http://localhost:3000</strong></p>
 <hr />
-<h2 id="2-running-the-web-app-with-docker-recommended">2. Running the Web App with Docker (Recommended)</h2>
-<p>Docker allows easy deployment of the entire application.</p>
-<h3 id="step-1-build-the-docker-image">Step 1 — Build the Docker Image</h3>
+<h2 id="2-running-with-docker-recommended">2. Running with Docker (Recommended)</h2>
+<p>Docker provides a consistent, containerized environment for deployment.</p>
+<h3 id="step-1-build-the-docker-image">Step 1: Build the Docker Image</h3>
 <pre><code class="language-bash">docker build -t stewartmatthew6288/occ-site .
 </code></pre>
-<h3 id="step-2-push-image-to-docker-hub-optional">Step 2 — Push Image to Docker Hub (Optional)</h3>
+<h3 id="step-2-push-to-docker-hub-optional">Step 2: Push to Docker Hub (Optional)</h3>
 <pre><code class="language-bash">docker push stewartmatthew6288/occ-site
 </code></pre>
-<h3 id="step-3-run-the-docker-container">Step 3 — Run the Docker Container</h3>
+<h3 id="step-3-run-the-docker-container">Step 3: Run the Docker Container</h3>
 <pre><code class="language-bash">docker run -p 3000:80 stewartmatthew6288/occ-site
 </code></pre>
-<p>The website is now available at: <code>http://localhost:3000</code></p>
+<p>Access the application at <strong>http://localhost:3000</strong></p>
 <hr />
-<h2 id="3-documentation-website-mkdocs">3. Documentation Website (MkDocs)</h2>
-<p><strong>Important:</strong> Python is only required for the documentation website. The web application itself does not use Python.</p>
-<h3 id="requirements_1">Requirements</h3>
+<h2 id="3-hosting-on-render-recommended">3. Hosting on Render (Recommended)</h2>
+<p>Render provides free static site and web service hosting with automatic deployments from GitHub.</p>
+<h3 id="prerequisites">Prerequisites</h3>
 <ul>
-<li>Python 3.10+</li>
-<li>pip (comes with Python)</li>
-<li>mkdocs + mkdocs-material</li>
+<li>GitHub repository connected to Render</li>
+<li>Environment variables configured in Render dashboard</li>
 </ul>
-<h3 id="step-1-create-a-python-virtual-environment">Step 1 — Create a Python Virtual Environment</h3>
-<pre><code class="language-bash">python -m venv .venv
+<h3 id="deployment-steps">Deployment Steps</h3>
+<p><strong>Step 1: Build the React App Locally (Optional – Verify Locally)</strong></p>
+<pre><code class="language-bash">npm run build
 </code></pre>
-<h3 id="step-2-activate-the-virtual-environment">Step 2 — Activate the Virtual Environment</h3>
-<p><strong>PowerShell (Windows):</strong></p>
-<pre><code class="language-bash">.venv\Scripts\activate
-</code></pre>
-<p><strong>Mac/Linux:</strong></p>
-<pre><code class="language-bash">source .venv/bin/activate
-</code></pre>
-<h3 id="step-3-install-mkdocs-and-the-theme">Step 3 — Install MkDocs and the Theme</h3>
-<pre><code class="language-bash">pip install mkdocs mkdocs-material
-</code></pre>
-<h3 id="step-4-run-the-documentation-site-locally">Step 4 — Run the Documentation Site Locally</h3>
-<pre><code class="language-bash">mkdocs serve
-</code></pre>
-<p>Then open: <code>http://127.0.0.1:8000</code></p>
-<h3 id="step-5-build-the-documentation-for-deployment">Step 5 — Build the Documentation for Deployment</h3>
-<pre><code class="language-bash">mkdocs build
-</code></pre>
-<p>This creates a <code>site/</code> folder containing static HTML files that you can deploy to Render, GitHub Pages, Netlify, or any static hosting provider.</p>
-<hr />
-<h2 id="4-external-resources-used">4. External Resources Used</h2>
+<p>This creates a <code>build/</code> folder with optimized static files.</p>
+<p><strong>Step 2: Connect to Render</strong></p>
+<ol>
+<li>Go to <a href="https://dashboard.render.com">dashboard.render.com</a></li>
+<li>Click <strong>"New +"</strong> → select <strong>"Static Site"</strong></li>
+<li>Connect your GitHub account and select the repository</li>
+<li>Configure the following:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Build Command</strong></td>
+<td><code>npm ci &amp;&amp; npm run build</code></td>
+</tr>
+<tr>
+<td><strong>Publish Directory</strong></td>
+<td><code>build</code></td>
+</tr>
+<tr>
+<td><strong>Environment Variables</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 3: Add Environment Variables</strong></p>
+<p>In the Render dashboard, add the following environment variables:</p>
 <ul>
-<li><strong>Supabase</strong> — Free tier database + authentication. Used for members, teams, and profile data.</li>
-<li><strong>Docker</strong> — Used to containerize and deploy the application. Free Windows/Mac/Linux application.</li>
-<li><strong>Render</strong> — Recommended for hosting both the web app and documentation.</li>
+<li><code>REACT_APP_SUPABASE_URL</code> = Your Supabase project URL</li>
+<li><code>REACT_APP_SUPABASE_ANON_KEY</code> = Your Supabase anonymous key</li>
+</ul>
+<p><strong>Step 4: Deploy</strong></p>
+<p>Click <strong>"Create Static Site"</strong> – Render automatically builds and deploys your application with each GitHub push.</p>
+<h3 id="render-free-tier-limits">Render Free Tier Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Uptime</strong></td>
+<td>750 hours/month (~24/7 for one service)</td>
+</tr>
+<tr>
+<td><strong>Bandwidth</strong></td>
+<td>100 GB/month</td>
+</tr>
+<tr>
+<td><strong>SSL Certificates</strong></td>
+<td>Automatic &amp; free</td>
+</tr>
+<tr>
+<td><strong>Custom Domains</strong></td>
+<td>Available</td>
+</tr>
+</tbody>
+</table>
+<h3 id="deployment-best-practices">Deployment Best Practices</h3>
+<ul>
+<li><strong>Security:</strong> Always add sensitive keys in Render's dashboard, never commit them to GitHub</li>
+<li><strong>Auto-Deploy:</strong> Enabled by default – pushes to <code>main</code> trigger new deployments</li>
+<li><strong>Custom Domains:</strong> Configure in Render dashboard under site settings</li>
+<li><strong>Preview Deployments:</strong> Available with paid plans for pull requests</li>
+</ul>
+<h3 id="troubleshooting-render-deployments">Troubleshooting Render Deployments</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Build fails</strong></td>
+<td>Check build logs in Render dashboard; verify <code>npm run build</code> works locally</td>
+</tr>
+<tr>
+<td><strong>Missing environment variables</strong></td>
+<td>Ensure all required variables are set in Render dashboard</td>
+</tr>
+<tr>
+<td><strong>Static site not updating</strong></td>
+<td>Clear Render cache; verify <code>build/</code> folder is generated</td>
+</tr>
+<tr>
+<td><strong>Docker issues</strong></td>
+<td>Test Dockerfile locally with <code>docker build</code> before deploying</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-external-resources">4. External Resources</h2>
+<p>This project uses the following free and open-source tools:</p>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Purpose</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Supabase</strong></td>
+<td>PostgreSQL database + authentication</td>
+<td><a href="https://supabase.com">supabase.com</a></td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td>Containerization for consistent deployments</td>
+<td><a href="https://docker.com">docker.com</a></td>
+</tr>
+<tr>
+<td><strong>Render</strong></td>
+<td>Free hosting for web apps and static sites</td>
+<td><a href="https://render.com">render.com</a></td>
+</tr>
+<tr>
+<td><strong>GitHub</strong></td>
+<td>Source control and repository hosting</td>
+<td><a href="https://github.com">github.com</a></td>
+</tr>
+<tr>
+<td><strong>Tailwind CSS</strong></td>
+<td>Utility-first CSS framework</td>
+<td><a href="https://tailwindcss.com">tailwindcss.com</a></td>
+</tr>
+<tr>
+<td><strong>React</strong></td>
+<td>Frontend JavaScript library</td>
+<td><a href="https://react.dev">react.dev</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="getting-help">Getting Help</h2>
+<ul>
+<li><strong>Supabase Issues:</strong> Check <a href="https://supabase.com/docs">Supabase documentation</a></li>
+<li><strong>React Issues:</strong> See <a href="https://react.dev">React documentation</a></li>
+<li><strong>Docker Issues:</strong> Visit <a href="https://docs.docker.com">Docker documentation</a></li>
+<li><strong>Project Issues:</strong> Open an issue on <a href="https://github.com/stewart-matthew/CS495FinalProject-OCCDatabase">GitHub</a></li>
 </ul></div>
             </div>
         </div>
