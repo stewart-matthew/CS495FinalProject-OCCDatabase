@@ -113,7 +113,12 @@ export default function AddChurch() {
       const fileExt = file.name.split('.').pop();
       // Use church name or timestamp for unique filename
       const churchName = formData.church_name || 'new-church';
-      const fileName = `${churchName}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      // Sanitize the church name: replace spaces with underscores and remove special characters
+      const sanitizedChurchName = churchName
+        .replace(/\s+/g, '_')  // Replace spaces with underscores
+        .replace(/[^a-zA-Z0-9_-]/g, '')  // Remove special characters except underscores and hyphens
+        .toLowerCase();
+      const fileName = `${sanitizedChurchName}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
       // Upload to the correct bucket: 'Church Images' (same as editChurch)
       const { error: uploadError } = await supabase.storage

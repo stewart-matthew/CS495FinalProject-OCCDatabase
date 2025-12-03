@@ -160,8 +160,16 @@ export default function EditChurch() {
 
         try {
             // Generate unique name for the image
+            // Use formData.church_name if available (actual DB value), otherwise use churchName from URL
+            const churchNameForFile = formData?.church_name || churchName;
+            // Sanitize the church name: replace spaces with underscores and remove special characters
+            const sanitizedChurchName = churchNameForFile
+                .replace(/\s+/g, '_')  // Replace spaces with underscores
+                .replace(/[^a-zA-Z0-9_-]/g, '')  // Remove special characters except underscores and hyphens
+                .toLowerCase();
+            
             const fileExt = file.name.split('.').pop();
-            const fileName = `${churchName}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const fileName = `${sanitizedChurchName}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
             // Upload to supabase - using Church Images bucket
             const { error: uploadError } = await supabase.storage
