@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { validatePhoneNumber } from "../utils/validation";
 
 export default function AddChurch() {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [formData, setFormData] = useState({
     church_name: "",
     "church_POC_first_name": "",
@@ -26,6 +28,33 @@ export default function AddChurch() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Check admin status
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/");
+        return;
+      }
+
+      const { data: memberData } = await supabase
+        .from("team_members")
+        .select("admin_flag")
+        .eq("email", user.email)
+        .single();
+
+      const adminStatus = memberData?.admin_flag === true || memberData?.admin_flag === "true";
+      setIsAdmin(adminStatus);
+      setCheckingAdmin(false);
+
+      if (!adminStatus) {
+        navigate("/home");
+      }
+    };
+
+    checkAdminStatus();
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -176,6 +205,8 @@ export default function AddChurch() {
       navigate("/home");
     }
   };
+
+  if (checkingAdmin || !isAdmin) return <p className="text-center mt-10">Loading...</p>;
 
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white p-4 md:p-6 rounded-2xl shadow">

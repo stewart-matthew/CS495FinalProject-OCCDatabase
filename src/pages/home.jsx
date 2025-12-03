@@ -383,13 +383,15 @@ export default function Home() {
                     </button>
                 )}
                 
-                {/* Add Church Button */}
-                <button
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                    onClick={() => navigate("/add-church")}
-                >
-                    Add Church
-                </button>
+                {/* Add Church Button - Admin Only */}
+                {isAdmin && (
+                    <button
+                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        onClick={() => navigate("/add-church")}
+                    >
+                        Add Church
+                    </button>
+                )}
             </div>
 
             {/* County Filters */}

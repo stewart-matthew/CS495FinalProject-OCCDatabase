@@ -44,25 +44,67 @@ export default function EditChurch() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [checkingAdmin, setCheckingAdmin] = useState(true);
+
+    // Check admin status
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                navigate("/");
+                return;
+            }
+
+            const { data: memberData } = await supabase
+                .from("team_members")
+                .select("admin_flag")
+                .eq("email", user.email)
+                .single();
+
+            const adminStatus = memberData?.admin_flag === true || memberData?.admin_flag === "true";
+            setIsAdmin(adminStatus);
+            setCheckingAdmin(false);
+
+            if (!adminStatus) {
+                navigate(`/church/${encodeURIComponent(churchName)}`);
+            }
+        };
+
+        checkAdminStatus();
+    }, [churchName, navigate]);
 
     // Fetch existing church data
     useEffect(() => {
+        if (!isAdmin || checkingAdmin) return;
+        
         const fetchChurch = async () => {
-            const { data, error } = await supabase
-                .from("church2")
-                .select("*")
-                .eq("church_name", churchName)
-                .single();
+            // Try both spaces and underscores for church name
+            const nameVariants = [churchName, churchName.replace(/ /g, "_"), churchName.replace(/_/g, " ")];
+            let churchData = null;
+            
+            for (const nameVariant of nameVariants) {
+                const { data, error } = await supabase
+                    .from("church2")
+                    .select("*")
+                    .eq("church_name", nameVariant)
+                    .maybeSingle();
 
-            if (error) {
-                setError("Error loading church details.");
+                if (!error && data) {
+                    churchData = data;
+                    break;
+                }
+            }
+
+            if (churchData) {
+                setFormData(churchData);
             } else {
-                setFormData(data);
+                setError("Error loading church details.");
             }
         };
 
         fetchChurch();
-    }, [churchName]);
+    }, [churchName, isAdmin, checkingAdmin]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -186,6 +228,7 @@ export default function EditChurch() {
         setLoading(false);
     };
 
+    if (checkingAdmin || !isAdmin) return <p className="text-center mt-10">Loading...</p>;
     if (!formData) return <p className="text-center mt-10">Loading...</p>;
 
     return (

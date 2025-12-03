@@ -822,12 +822,14 @@ export default function ChurchPage() {
           Back
         </button>
 
-        <button
-          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-          onClick={() => navigate(`/edit-church/${encodeURIComponent(church.church_name)}`)}
-        >
-          Edit Church
-        </button>
+        {isAdmin && (
+          <button
+            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+            onClick={() => navigate(`/edit-church/${encodeURIComponent(church.church_name)}`)}
+          >
+            Edit Church
+          </button>
+        )}
       </div>
 
 
