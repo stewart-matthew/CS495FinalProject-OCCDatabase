@@ -118,17 +118,13 @@ export default function AddChurch() {
       return;
     }
     
-    if (!formData["church_phone_number"] || !formData["church_phone_number"].trim()) {
-      setError("Phone number is required.");
-      setLoading(false);
-      return;
-    }
-
-    // Validate phone numbers
-    if (!validatePhoneNumber(formData["church_phone_number"])) {
-      setError("Please enter a valid phone number (10 digits).");
-      setLoading(false);
-      return;
+    // Validate phone numbers only if provided
+    if (formData["church_phone_number"] && formData["church_phone_number"].trim()) {
+      if (!validatePhoneNumber(formData["church_phone_number"])) {
+        setError("Please enter a valid phone number (10 digits).");
+        setLoading(false);
+        return;
+      }
     }
     
     if (formData["church_POC_phone"] && !validatePhoneNumber(formData["church_POC_phone"])) {
@@ -154,7 +150,7 @@ export default function AddChurch() {
         "church_physical_state": formData["church_physical_state"],
         "church_physical_zip": formData["church_physical_zip"] || null,
         "church_physical_county": formData["church_physical_county"] || null,
-        "church_phone_number": parseInt(phoneNumberBigint, 10),
+        "church_phone_number": phoneNumberBigint ? parseInt(phoneNumberBigint, 10) : null,
         church_contact: formData.church_contact || null,
         "church_POC_phone": churchPOCPhoneBigint ? parseInt(churchPOCPhoneBigint, 10) : null,
         "church_POC_email": formData["church_POC_email"] || null,
@@ -196,24 +192,14 @@ export default function AddChurch() {
           className="w-full border rounded-lg p-2"
           maxLength={200}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            name="church_POC_first_name"
-            value={formData["church_POC_first_name"]}
-            onChange={handleChange}
-            placeholder="POC First Name"
-            className="border rounded-lg p-2"
-            maxLength={50}
-          />
-          <input
-            name="church_POC_last_name"
-            value={formData["church_POC_last_name"]}
-            onChange={handleChange}
-            placeholder="POC Last Name"
-            className="border rounded-lg p-2"
-            maxLength={50}
-          />
-        </div>
+        <input
+          name="church_phone_number"
+          value={formData["church_phone_number"]}
+          onChange={handleChange}
+          placeholder="Church Phone Number"
+          className="w-full border rounded-lg p-2"
+          maxLength={20}
+        />
         <input
           name="church_physical_address"
           value={formData["church_physical_address"]}
@@ -242,32 +228,13 @@ export default function AddChurch() {
             maxLength={2}
           />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            name="church_physical_zip"
-            value={formData["church_physical_zip"]}
-            onChange={handleChange}
-            placeholder="ZIP Code"
-            className="border rounded-lg p-2"
-            maxLength={10}
-          />
-          <input
-            name="church_physical_county"
-            value={formData["church_physical_county"]}
-            onChange={handleChange}
-            placeholder="County"
-            className="border rounded-lg p-2"
-            maxLength={100}
-          />
-        </div>
         <input
-          name="church_phone_number"
-          value={formData["church_phone_number"]}
+          name="church_physical_zip"
+          value={formData["church_physical_zip"]}
           onChange={handleChange}
-          placeholder="Church Phone Number"
-          required
+          placeholder="ZIP Code"
           className="w-full border rounded-lg p-2"
-          maxLength={20}
+          maxLength={10}
         />
         <input
           name="church_mailing_address"
@@ -277,14 +244,24 @@ export default function AddChurch() {
           className="w-full border rounded-lg p-2"
           maxLength={200}
         />
-        <input
-          name="church_contact"
-          value={formData.church_contact}
-          onChange={handleChange}
-          placeholder="Church Contact Name"
-          className="w-full border rounded-lg p-2"
-          maxLength={100}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            name="church_POC_first_name"
+            value={formData["church_POC_first_name"]}
+            onChange={handleChange}
+            placeholder="POC First Name"
+            className="border rounded-lg p-2"
+            maxLength={50}
+          />
+          <input
+            name="church_POC_last_name"
+            value={formData["church_POC_last_name"]}
+            onChange={handleChange}
+            placeholder="POC Last Name"
+            className="border rounded-lg p-2"
+            maxLength={50}
+          />
+        </div>
         <input
           name="church_POC_phone"
           value={formData["church_POC_phone"]}

@@ -343,7 +343,7 @@ export default function Home() {
                 const { data: memberData } = await supabase
                     .from("team_members")
                     .select("admin_flag")
-                    .eq("id", user.id)
+                    .eq("email", user.email)
                     .single();
                 
                 setIsAdmin(memberData?.admin_flag === true || memberData?.admin_flag === "true");
@@ -373,24 +373,23 @@ export default function Home() {
             />
             
             <div className="flex justify-between items-center mb-6">
+                {/* Update Shoebox Counts Button - Admin Only */}
                 {isAdmin && (
                     <button
                         className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                         onClick={() => setIsModalOpen(true)}
                     >
-                        Update  {filters.selectedYear} Shoebox Counts
+                        Update {filters.selectedYear} Shoebox Counts
                     </button>
                 )}
-
+                
                 {/* Add Church Button */}
-                <div className="flex justify-end">
-                    <button
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                        onClick={() => navigate("/add-church")}
-                    >
-                        Add Church
-                    </button>
-                </div>
+                <button
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    onClick={() => navigate("/add-church")}
+                >
+                    Add Church
+                </button>
             </div>
 
             {/* County Filters */}
@@ -507,10 +506,10 @@ export default function Home() {
                             <p className="text-gray-700">{church["church_physical_city"]}, {church["church_physical_state"]} - <strong>{church["church_physical_county"]} County</strong></p>
                             {church[shoeboxFieldName] !== undefined && <p className="text-gray-700"><strong>Shoebox {filters.selectedYear}:</strong> {church[shoeboxFieldName]}</p>}
                             {church.pocName && (
-                                <p className="text-gray-700"><strong>Person of Contact:</strong> {church.pocName}</p>
+                                <p className="text-gray-700"><strong>Point of Contact:</strong> {church.pocName}</p>
                             )}
                             {!church.pocName && church["church_POC_email"] && (
-                                <p className="text-gray-700"><strong>Person of Contact:</strong> {church["church_POC_email"]}</p>
+                                <p className="text-gray-700"><strong>Point of Contact:</strong> {church["church_POC_email"]}</p>
                             )}
                             <p className="text-gray-700">
                                 <strong>Project Leader:</strong> {church.projectLeaderName || "N/A"}
@@ -525,7 +524,15 @@ export default function Home() {
                         )}
                         <button
                             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                            onClick={() => navigate(`/church/${encodeURIComponent(church.church_name)}`)}
+                            onClick={() => {
+                                // Use the actual church name from database (may have spaces or underscores)
+                                const actualChurchName = church.church_name;
+                                const cityParam = church["church_physical_city"] 
+                                    ? `?city=${encodeURIComponent(church["church_physical_city"])}`
+                                    : '';
+                                // Encode the church name as-is from the database
+                                navigate(`/church/${encodeURIComponent(actualChurchName)}${cityParam}`);
+                            }}
                         >
                             Church Information
                         </button>

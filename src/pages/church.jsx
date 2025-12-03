@@ -35,39 +35,57 @@ export default function ChurchPage() {
 
   useEffect(() => {
     async function getChurch() {
-      // Convert spaces to underscores to match database format
-      const dbChurchName = churchName.replace(/ /g, "_");
+      // Decode the church name from URL (may have spaces or underscores)
+      const decodedChurchName = decodeURIComponent(churchName);
       const city = searchParams.get("city");
       
-      let query = supabase
-        .from("church2")
-        .select("*")
-        .eq("church_name", dbChurchName);
+      // Try multiple formats: exact match, with spaces, with underscores
+      const churchNameVariants = [
+        decodedChurchName, // Original from URL
+        decodedChurchName.replace(/ /g, "_"), // With underscores
+        decodedChurchName.replace(/_/g, " ") // With spaces
+      ];
       
-      // If city is provided in query params, filter by city to get the exact match
-      if (city) {
-        query = query.ilike("church_physical_city", `%${city}%`);
+      let churchData = null;
+      
+      // Try each variant
+      for (const nameVariant of churchNameVariants) {
+        let query = supabase
+          .from("church2")
+          .select("*")
+          .eq("church_name", nameVariant);
+        
+        // If city is provided in query params, filter by city to get the exact match
+        if (city) {
+          query = query.ilike("church_physical_city", `%${city}%`);
+        }
+        
+        const { data, error } = await query.maybeSingle();
+        
+        if (!error && data) {
+          churchData = data;
+          break; // Found it, stop searching
+        }
       }
       
-      const { data, error } = await query.maybeSingle();
-      
-      if (error) {
-        // Error fetching church
-      } else if (data) {
-        setChurch(data);
-      } else {
-        // If no match with city, try without city filter (fallback)
-        if (city) {
-          const { data: fallbackData, error: fallbackError } = await supabase
+      // If still not found and we have city, try without city filter
+      if (!churchData && city) {
+        for (const nameVariant of churchNameVariants) {
+          const { data, error } = await supabase
             .from("church2")
             .select("*")
-            .eq("church_name", dbChurchName)
+            .eq("church_name", nameVariant)
             .maybeSingle();
           
-          if (!fallbackError && fallbackData) {
-            setChurch(fallbackData);
+          if (!error && data) {
+            churchData = data;
+            break;
           }
         }
+      }
+      
+      if (churchData) {
+        setChurch(churchData);
       }
       setLoading(false);
     }
@@ -428,7 +446,7 @@ export default function ChurchPage() {
                 <p><strong>Phone:</strong> {church["church_phone_number"]}</p>
               )}
               {church["church_POC_first_name"] && church["church_POC_last_name"] && (
-                <p><strong>Person of Contact:</strong> {church["church_POC_first_name"]} {church["church_POC_last_name"]}</p>
+                <p><strong>Point of Contact:</strong> {church["church_POC_first_name"]} {church["church_POC_last_name"]}</p>
               )}
               <p><strong>Project Leader:</strong> {
                 church.project_leader === true

@@ -479,7 +479,21 @@ export default function Profile() {
                                 <h2 className="text-lg font-semibold mb-2">Personal Information</h2>
                                 <div className="space-y-1 text-gray-700">
                                     {memberData.date_of_birth && (
-                                        <p><strong>Date of Birth:</strong> {new Date(memberData.date_of_birth).toLocaleDateString()}</p>
+                                        <p><strong>Date of Birth:</strong> {
+                                            (() => {
+                                                // Handle date string to avoid timezone issues
+                                                const dob = memberData.date_of_birth;
+                                                if (typeof dob === 'string') {
+                                                    // If it's a date string (YYYY-MM-DD), parse it directly
+                                                    const [year, month, day] = dob.split('-');
+                                                    if (year && month && day) {
+                                                        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                                                    }
+                                                }
+                                                // Fallback to standard date parsing
+                                                return new Date(dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                                            })()
+                                        }</p>
                                     )}
                                     {memberData.shirt_size && (
                                         <p><strong>Shirt Size:</strong> {memberData.shirt_size}</p>
