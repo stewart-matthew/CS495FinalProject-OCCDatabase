@@ -547,8 +547,9 @@ export default function ChurchPage() {
                     )}
                     <p>
                       {[
-                        church["church_physical_city"],
-                        church["church_physical_state"],
+                        church["church_physical_city"] && church["church_physical_state"] 
+                          ? `${church["church_physical_city"]}, ${church["church_physical_state"]}`
+                          : [church["church_physical_city"], church["church_physical_state"]].filter(Boolean).join(", "),
                         church["church_physical_zip"]
                       ].filter(Boolean).join(" ")}
                     </p>
