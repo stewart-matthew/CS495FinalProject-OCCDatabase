@@ -219,12 +219,11 @@ export default function ChurchPage() {
       }
     }
 
-    // Convert spaces to underscores to match database format
-    const dbChurchName = church.church_name.replace(/ /g, "_");
+    // Use the actual church name from the database (already loaded correctly)
     const { error } = await supabase
       .from("church2")
       .update(updateData)
-      .eq("church_name", dbChurchName);
+      .eq("church_name", church.church_name);
 
     if (error) {
       alert("Failed to update shoebox counts. Please try again.");

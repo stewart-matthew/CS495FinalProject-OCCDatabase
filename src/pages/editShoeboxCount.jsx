@@ -46,19 +46,35 @@ export default function EditShoeboxCount() {
         if (!isAdmin || checkingAdmin) return;
 
         const fetchChurch = async () => {
-            // Convert spaces to underscores to match database format
-            const dbChurchName = churchName.replace(/ /g, "_");
-            const { data, error } = await supabase
-                .from("church2")
-                .select(`church_name, ${shoeboxFieldName}`)
-                .eq("church_name", dbChurchName)
-                .single();
+            // Try multiple name variants to handle spaces/underscores
+            const decodedChurchName = decodeURIComponent(churchName);
+            const churchNameVariants = [
+                decodedChurchName, // Original from URL
+                decodedChurchName.replace(/ /g, "_"), // With underscores
+                decodedChurchName.replace(/_/g, " ") // With spaces
+            ];
+            
+            let churchData = null;
+            
+            // Try each variant
+            for (const nameVariant of churchNameVariants) {
+                const { data, error } = await supabase
+                    .from("church2")
+                    .select(`church_name, ${shoeboxFieldName}`)
+                    .eq("church_name", nameVariant)
+                    .maybeSingle();
 
-            if (error) {
-                setError("Error loading church details.");
+                if (!error && data) {
+                    churchData = data;
+                    break; // Found it, stop searching
+                }
+            }
+
+            if (churchData) {
+                setChurchData(churchData);
+                setShoeboxCount(churchData[shoeboxFieldName] || '');
             } else {
-                setChurchData(data);
-                setShoeboxCount(data[shoeboxFieldName] || '');
+                setError("Error loading church details.");
             }
         };
 
@@ -90,12 +106,17 @@ export default function EditShoeboxCount() {
             [shoeboxFieldName]: numericValue,
         };
 
-        // Convert spaces to underscores to match database format
-        const dbChurchName = churchName.replace(/ /g, "_");
+        // Use the actual church name from the database (already loaded correctly)
+        if (!churchData || !churchData.church_name) {
+            setError("Error: Church data not loaded.");
+            setLoading(false);
+            return;
+        }
+
         const { error: updateError } = await supabase
             .from("church2")
             .update(updatePayload)
-            .eq("church_name", dbChurchName);
+            .eq("church_name", churchData.church_name);
 
         if (updateError) {
             setError("Error updating shoebox count.");
