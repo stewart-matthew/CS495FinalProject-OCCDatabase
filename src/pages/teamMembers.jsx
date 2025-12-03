@@ -133,6 +133,20 @@ export default function TeamMembers() {
                 })
             );
 
+            // Sort members alphabetically by last name, then first name (like churches are sorted)
+            membersWithChurchData.sort((a, b) => {
+                const lastNameA = (a.last_name || "").trim();
+                const lastNameB = (b.last_name || "").trim();
+                const lastNameCompare = lastNameA.localeCompare(lastNameB, undefined, { sensitivity: 'base' });
+                if (lastNameCompare !== 0) {
+                    return lastNameCompare;
+                }
+                // If last names are the same, sort by first name
+                const firstNameA = (a.first_name || "").trim();
+                const firstNameB = (b.first_name || "").trim();
+                return firstNameA.localeCompare(firstNameB, undefined, { sensitivity: 'base' });
+            });
+
             setMembers(membersWithChurchData);
             setLoading(false);
         };
@@ -246,8 +260,22 @@ export default function TeamMembers() {
         currentUser &&
         (currentUser.admin_flag === true || currentUser.admin_flag === "true");
 
-    // Split filtered members into active and former
-    const activeMembers = filteredMembers.filter((m) => m.active === true || m.active === "true");
+    // Split filtered members into active and former, and sort alphabetically
+    const activeMembers = filteredMembers
+        .filter((m) => m.active === true || m.active === "true")
+        .sort((a, b) => {
+            // Sort by last name first, then first name (alphabetical order)
+            const lastNameA = (a.last_name || "").trim();
+            const lastNameB = (b.last_name || "").trim();
+            const lastNameCompare = lastNameA.localeCompare(lastNameB, undefined, { sensitivity: 'base' });
+            if (lastNameCompare !== 0) {
+                return lastNameCompare;
+            }
+            // If last names are the same, sort by first name
+            const firstNameA = (a.first_name || "").trim();
+            const firstNameB = (b.first_name || "").trim();
+            return firstNameA.localeCompare(firstNameB, undefined, { sensitivity: 'base' });
+        });
     const formerMembers = filteredMembers.filter((m) => m.active === false || m.active === "false");
 
     return (

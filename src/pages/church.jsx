@@ -466,7 +466,7 @@ export default function ChurchPage() {
               <p><strong>Project Leader:</strong> {
                 church.project_leader === true
                   ? `${church["church_POC_first_name"] || ""} ${church["church_POC_last_name"] || ""}`.trim() || "POC"
-                  : "Different from POC"
+                  : "Not known"
               }</p>
             </div>
 
@@ -563,8 +563,22 @@ export default function ChurchPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-800 mb-2">Mailing Address</h2>
                   <div className="space-y-1 text-gray-700">
-                    {church["church_mailing_address"] ? (
-                      <p>{church["church_mailing_address"]}</p>
+                    {church["church_mailing_address"] || church["church_mailing_city"] || church["church_mailing_state"] || church["church_mailing_zip"] ? (
+                      <>
+                        {church["church_mailing_address"] && (
+                          <p>{church["church_mailing_address"]}</p>
+                        )}
+                        {(church["church_mailing_city"] || church["church_mailing_state"] || church["church_mailing_zip"]) && (
+                          <p>
+                            {[
+                              church["church_mailing_city"] && church["church_mailing_state"] 
+                                ? `${church["church_mailing_city"]}, ${church["church_mailing_state"]}`
+                                : [church["church_mailing_city"], church["church_mailing_state"]].filter(Boolean).join(", "),
+                              church["church_mailing_zip"]
+                            ].filter(Boolean).join(" ")}
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <p className="text-gray-400 italic">Not provided</p>
                     )}

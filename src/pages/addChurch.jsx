@@ -21,6 +21,9 @@ export default function AddChurch() {
     "church_POC_phone": "",
     "church_POC_email": "",
     "church_mailing_address": "",
+    "church_mailing_city": "",
+    "church_mailing_state": "",
+    "church_mailing_zip": "",
     notes: "",
     photo_url: "",
     project_leader: false, // Boolean: TRUE = POC is project leader, FALSE = different person
@@ -73,6 +76,9 @@ export default function AddChurch() {
       "church_POC_phone": 20,
       "church_POC_email": 100,
       "church_mailing_address": 200,
+      "church_mailing_city": 100,
+      "church_mailing_state": 2,
+      "church_mailing_zip": 10,
       notes: 2000,
     };
     
@@ -184,6 +190,9 @@ export default function AddChurch() {
         "church_POC_phone": churchPOCPhoneBigint ? parseInt(churchPOCPhoneBigint, 10) : null,
         "church_POC_email": formData["church_POC_email"] || null,
         "church_mailing_address": formData["church_mailing_address"] || null,
+        "church_mailing_city": formData["church_mailing_city"] || null,
+        "church_mailing_state": formData["church_mailing_state"] || null,
+        "church_mailing_zip": formData["church_mailing_zip"] || null,
         notes: formData.notes || null,
         photo_url: formData.photo_url || null,
         created_at: new Date().toISOString(),
@@ -259,22 +268,80 @@ export default function AddChurch() {
             maxLength={2}
           />
         </div>
-        <input
-          name="church_physical_zip"
-          value={formData["church_physical_zip"]}
-          onChange={handleChange}
-          placeholder="ZIP Code"
-          className="w-full border rounded-lg p-2"
-          maxLength={10}
-        />
-        <input
-          name="church_mailing_address"
-          value={formData["church_mailing_address"]}
-          onChange={handleChange}
-          placeholder="Mailing Address"
-          className="w-full border rounded-lg p-2"
-          maxLength={200}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            name="church_physical_zip"
+            value={formData["church_physical_zip"]}
+            onChange={handleChange}
+            placeholder="ZIP Code"
+            className="border rounded-lg p-2"
+            maxLength={10}
+          />
+          <input
+            name="church_physical_county"
+            value={formData["church_physical_county"]}
+            onChange={handleChange}
+            placeholder="County"
+            className="border rounded-lg p-2"
+            maxLength={100}
+          />
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Mailing Address
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setFormData((prev) => ({
+                  ...prev,
+                  "church_mailing_address": prev["church_physical_address"],
+                  "church_mailing_city": prev["church_physical_city"],
+                  "church_mailing_state": prev["church_physical_state"],
+                  "church_mailing_zip": prev["church_physical_zip"],
+                }));
+              }}
+              className="mb-2 text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              Use same as physical address
+            </button>
+            <input
+              name="church_mailing_address"
+              value={formData["church_mailing_address"]}
+              onChange={handleChange}
+              placeholder="Mailing Address"
+              className="w-full border rounded-lg p-2"
+              maxLength={200}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              name="church_mailing_city"
+              value={formData["church_mailing_city"]}
+              onChange={handleChange}
+              placeholder="Mailing City"
+              className="border rounded-lg p-2"
+              maxLength={100}
+            />
+            <input
+              name="church_mailing_state"
+              value={formData["church_mailing_state"]}
+              onChange={handleChange}
+              placeholder="Mailing State"
+              className="border rounded-lg p-2"
+              maxLength={2}
+            />
+          </div>
+          <input
+            name="church_mailing_zip"
+            value={formData["church_mailing_zip"]}
+            onChange={handleChange}
+            placeholder="Mailing ZIP Code"
+            className="w-full border rounded-lg p-2"
+            maxLength={10}
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             name="church_POC_first_name"

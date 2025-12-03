@@ -142,7 +142,7 @@ export default function AddMember() {
     if (error) {
       setError(error.message);
     } else {
-      navigate("/profile");
+      navigate("/team-members");
     }
 
     setLoading(false);

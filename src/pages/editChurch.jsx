@@ -117,6 +117,9 @@ export default function EditChurch() {
       "church_POC_last_name": 50,
       "church_physical_address": 200,
       "church_mailing_address": 200,
+      "church_mailing_city": 100,
+      "church_mailing_state": 2,
+      "church_mailing_zip": 10,
       "church_physical_city": 100,
       "church_physical_state": 2,
       "church_physical_zip": 10,
@@ -199,36 +202,41 @@ export default function EditChurch() {
     setLoading(true);
     setError(null);
 
-    // Convert phone numbers to bigint if they exist
-    const updateData = { ...formData };
-        if (updateData["church_phone_number"]) {
-            const phoneNumberBigint = String(updateData["church_phone_number"]).replace(/\D/g, '');
-            updateData["church_phone_number"] = phoneNumberBigint === '' ? null : parseInt(phoneNumberBigint, 10);
-        }
-        if (updateData["church_POC_phone"]) {
-            const churchPOCPhoneBigint = String(updateData["church_POC_phone"]).replace(/\D/g, '');
-            updateData["church_POC_phone"] = churchPOCPhoneBigint === '' ? null : parseInt(churchPOCPhoneBigint, 10);
-        }
+    try {
+      // Convert phone numbers to bigint if they exist
+      const updateData = { ...formData };
+      if (updateData["church_phone_number"]) {
+        const phoneNumberBigint = String(updateData["church_phone_number"]).replace(/\D/g, '');
+        updateData["church_phone_number"] = phoneNumberBigint === '' ? null : parseInt(phoneNumberBigint, 10);
+      }
+      if (updateData["church_POC_phone"]) {
+        const churchPOCPhoneBigint = String(updateData["church_POC_phone"]).replace(/\D/g, '');
+        updateData["church_POC_phone"] = churchPOCPhoneBigint === '' ? null : parseInt(churchPOCPhoneBigint, 10);
+      }
 
-        // Remove fields that shouldn't be updated via this form
-        const { id, created_at, "church_relations_member_2023": rel2023, "church_relations_member_2024": rel2024, "church_relations_member_2025": rel2025, "church_relations_member_2026": rel2026, shoebox_2022, shoebox_2021, shoebox_2020, shoebox_2019, shoebox_2023, shoebox_2024, shoebox_2025, shoebox_2026, ...fieldsToUpdate } = updateData;
-        
-        const { error } = await supabase
-            .from("church2")
-            .update({
-                ...fieldsToUpdate,
-                updated_at: new Date().toISOString()
-            })
-            .eq("church_name", originalChurchName); // Use original church name for WHERE clause
+      // Remove fields that shouldn't be updated via this form
+      const { id, created_at, "church_relations_member_2023": rel2023, "church_relations_member_2024": rel2024, "church_relations_member_2025": rel2025, "church_relations_member_2026": rel2026, shoebox_2022, shoebox_2021, shoebox_2020, shoebox_2019, shoebox_2023, shoebox_2024, shoebox_2025, shoebox_2026, ...fieldsToUpdate } = updateData;
+      
+      const { error } = await supabase
+        .from("church2")
+        .update(fieldsToUpdate)
+        .eq("church_name", originalChurchName); // Use original church name for WHERE clause
 
-        if (error) {
-            setError("Error updating church information.");
-        } else {
-            navigate(`/church/${churchName}`);
-        }
-
+      if (error) {
+        console.error("Update error:", error);
+        setError("Error updating church information: " + (error.message || "Unknown error"));
         setLoading(false);
-    };
+      } else {
+        // Navigate to the updated church name (from formData, not the old URL param)
+        const updatedChurchName = formData.church_name || originalChurchName;
+        navigate(`/church/${encodeURIComponent(updatedChurchName)}`);
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      setError("Error updating church information: " + (err.message || "Unknown error"));
+      setLoading(false);
+    }
+  };
 
     if (checkingAdmin || !isAdmin) return <p className="text-center mt-10">Loading...</p>;
     if (!formData) return <p className="text-center mt-10">Loading...</p>;
@@ -392,12 +400,60 @@ export default function EditChurch() {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Mailing Address</label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        "church_mailing_address": prev["church_physical_address"],
+                                        "church_mailing_city": prev["church_physical_city"],
+                                        "church_mailing_state": prev["church_physical_state"],
+                                        "church_mailing_zip": prev["church_physical_zip"],
+                                    }));
+                                }}
+                                className="mb-2 text-sm text-blue-600 hover:text-blue-800 underline"
+                            >
+                                Use same as physical address
+                            </button>
                             <input
                                 name="church_mailing_address"
                                 value={formData["church_mailing_address"] || ""}
                                 onChange={handleChange}
                                 className="w-full border rounded-md px-3 py-2"
                                 maxLength={200}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mailing City</label>
+                                <input
+                                    name="church_mailing_city"
+                                    value={formData["church_mailing_city"] || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={100}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mailing State</label>
+                                <input
+                                    name="church_mailing_state"
+                                    value={formData["church_mailing_state"] || ""}
+                                    onChange={handleChange}
+                                    className="w-full border rounded-md px-3 py-2"
+                                    maxLength={2}
+                                    placeholder="e.g., AL"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Mailing ZIP Code</label>
+                            <input
+                                name="church_mailing_zip"
+                                value={formData["church_mailing_zip"] || ""}
+                                onChange={handleChange}
+                                className="w-full border rounded-md px-3 py-2"
+                                maxLength={10}
                             />
                         </div>
                     </div>
