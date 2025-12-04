@@ -121,7 +121,8 @@ export default function ChurchPage() {
       
       const { data, error } = await supabase
         .from("team_members")
-        .select("id, first_name, last_name")
+        .select("id, first_name, last_name, active")
+        .eq("active", true)
         .order("last_name", { ascending: true });
       
       if (error) {

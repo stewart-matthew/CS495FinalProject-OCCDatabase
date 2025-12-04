@@ -372,9 +372,10 @@ export default function Profile() {
 
             const { data: members, error: tmErr } = await supabase
                 .from("team_members")
-                .select("id, first_name, last_name, email, photo_url")
-                .in("id", ids);
-
+                .select("id, first_name, last_name, email, photo_url, active")
+                .in("id", ids)
+                .eq("active", true);
+                
             if (tmErr) throw tmErr;
 
             // fetch and attach their positions
